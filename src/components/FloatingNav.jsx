@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, X, Plus } from 'lucide-react';
+import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, X, Menu } from 'lucide-react';
 
 const navItems = [
   { id: 'home', icon: Home, label: 'Home' },
@@ -20,47 +20,25 @@ const FloatingNav = ({ setRoute, currentRoute }) => {
 
   return (
     <>
-      {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-40"
-          onClick={() => setIsOpen(false)}
-        ></div>
-      )}
-
-      {/* FAB */}
+      {isOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setIsOpen(false)}></div>}
       <div className="fixed bottom-6 right-6 z-50">
-        <div className={`relative transition-all duration-300 ease-in-out ${isOpen ? 'w-48' : 'w-16'}`}>
-          {/* Menu Items */}
-          <div className={`absolute bottom-0 right-0 transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="relative">
+          <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <div className="flex flex-col items-end gap-3 mb-20">
               {navItems.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => handleNavClick(item.id)}>
-                  <span className="bg-light-card dark:bg-dark-card px-3 py-1 rounded-md text-sm shadow-md text-light-text dark:text-dark-text whitespace-nowrap">
-                    {item.label}
-                  </span>
-                  <button
-                    className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${
-                      currentRoute === item.id 
-                        ? 'bg-light-primary text-white dark:bg-dark-primary dark:text-slate-900' 
-                        : 'bg-light-card dark:bg-dark-card text-light-subtle-text dark:text-dark-subtle-text'
-                    }`}
-                  >
+                  <span className="bg-light-card dark:bg-dark-card px-3 py-1 rounded-md text-sm shadow-md whitespace-nowrap">{item.label}</span>
+                  <button className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${currentRoute === item.id ? 'bg-light-primary text-white dark:bg-dark-primary dark:text-slate-900' : 'bg-light-card dark:bg-dark-card'}`}>
                     <item.icon size={20} />
                   </button>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Main Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="absolute bottom-0 right-0 w-16 h-16 bg-light-secondary dark:bg-dark-secondary text-white rounded-full flex items-center justify-center shadow-xl transform transition-transform duration-300 hover:scale-105"
-          >
+          <button onClick={() => setIsOpen(!isOpen)} className="absolute bottom-0 right-0 w-16 h-16 bg-light-secondary dark:bg-dark-secondary text-white rounded-full flex items-center justify-center shadow-xl transform transition-transform duration-300 hover:scale-105">
             <div className="relative w-6 h-6">
-                <Plus size={28} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${isOpen ? 'opacity-0 rotate-45 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
-                <X size={28} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${isOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-45 scale-50'}`} />
+                <Menu size={28} className={`absolute inset-0 transition-all duration-300 ${isOpen ? 'opacity-0 rotate-45 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
+                <X size={28} className={`absolute inset-0 transition-all duration-300 ${isOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-45 scale-50'}`} />
             </div>
           </button>
         </div>

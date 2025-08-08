@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from './context/AppContext';
-import { AuthContext } from './context/AuthContext'; // Import AuthContext
+import { AuthContext } from './context/AuthContext';
 import HomePage from './pages/HomePage';
 import ReportIncidentPage from './pages/ReportIncidentPage';
 import IncidentLogPage from './pages/IncidentLogPage';
@@ -8,9 +8,8 @@ import ExecutiveDashboardPage from './pages/ExecutiveDashboardPage';
 import ComparisonPage from './pages/ComparisonPage';
 import SettingsPage from './pages/SettingsPage';
 import FloatingNav from './components/FloatingNav';
-import LoginPage from './pages/LoginPage'; // Import LoginPage
+import LoginPage from './pages/LoginPage';
 
-// A simple router component
 const Router = ({ route }) => {
   switch (route) {
     case 'home': return <HomePage />;
@@ -25,8 +24,8 @@ const Router = ({ route }) => {
 
 function App() {
   const [route, setRoute] = useState('home');
-  const { theme } = useContext(AppContext);
-  const { currentUser } = useContext(AuthContext); // Get the current user
+  const { theme, user } = useContext(AppContext);
+  const { currentUser } = useContext(AuthContext);
 
   React.useEffect(() => {
     const root = window.document.documentElement;
@@ -34,14 +33,18 @@ function App() {
     root.classList.add(theme);
   }, [theme]);
 
-  // If there's no user, show the login page. Otherwise, show the app.
   if (!currentUser) {
     return <LoginPage />;
   }
 
   return (
     <div className={`min-h-screen font-light text-light-text dark:text-dark-text transition-colors duration-300`}>
-      <main className="p-4 sm:p-6 lg:p-8">
+      <header className="fixed top-0 right-0 p-4 z-10">
+        <div className="bg-light-card dark:bg-dark-card px-4 py-2 rounded-lg shadow-md text-sm">
+          Hello, <span className="font-semibold">{user.name || 'User'}</span>
+        </div>
+      </header>
+      <main className="p-4 sm:p-6 lg:p-8 pt-20">
         <Router route={route} />
       </main>
       <FloatingNav setRoute={setRoute} currentRoute={route} />

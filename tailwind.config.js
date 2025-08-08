@@ -14,6 +14,7 @@ export default {
         // Light Theme
         'light-primary': '#0d9488', // teal-600
         'light-secondary': '#3b82f6', // blue-500
+        'light-accent': '#f97316', // orange-500
         'light-background': '#f8fafc', // slate-50
         'light-card': '#ffffff',
         'light-text': '#334155', // slate-700
@@ -22,6 +23,7 @@ export default {
         // Dark Theme
         'dark-primary': '#2dd4bf', // teal-400
         'dark-secondary': '#60a5fa', // blue-400
+        'dark-accent': '#fb923c', // orange-400
         'dark-background': '#1e293b', // slate-800
         'dark-card': '#334155', // slate-700
         'dark-text': '#e2e8f0', // slate-200

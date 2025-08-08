@@ -16,22 +16,20 @@ const SettingsPage = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8">
-            <h1 className="text-3xl font-semibold text-light-text dark:text-dark-text">Settings</h1>
+        <div className="max-w-2xl mx-auto space-y-4">
+            <h1 className="text-2xl sm:text-3xl font-semibold">Settings</h1>
 
-            {/* User Info Section */}
-            <div className="bg-light-card dark:bg-dark-card p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-2">User Profile</h2>
-                <p className="text-light-subtle-text dark:text-dark-subtle-text">You are logged in as:</p>
-                <p className="font-semibold text-lg">{user.name}</p>
-                <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">User ID: {user.userId}</p>
+            <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                <h2 className="text-lg font-semibold mb-1">User Profile</h2>
+                <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">You are logged in as:</p>
+                <p className="font-semibold">{user.name}</p>
+                <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text">User ID: {user.userId}</p>
             </div>
 
-            {/* Appearance Section */}
-            <div className="bg-light-card dark:bg-dark-card p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4">Appearance</h2>
+            <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                <h2 className="text-lg font-semibold mb-2">Appearance</h2>
                 <div className="flex items-center justify-between">
-                    <p className="font-semibold">Dark Mode</p>
+                    <p className="font-semibold text-sm">Dark Mode</p>
                     <button onClick={toggleTheme} className="relative inline-flex items-center h-6 rounded-full w-11 transition-colors bg-slate-200 dark:bg-slate-600">
                         <span className={`inline-block w-4 h-4 transform transition-transform bg-white rounded-full ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}>
                            {theme === 'dark' ? <Moon size={12} className="text-slate-800 m-0.5"/> : <Sun size={12} className="text-slate-800 m-0.5"/>}
@@ -40,18 +38,16 @@ const SettingsPage = () => {
                 </div>
             </div>
             
-            {/* Logout Button */}
-            <div className="text-center">
-                 <button onClick={handleLogout} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-md transition-colors mx-auto">
-                    <LogOut size={16} />
+            <div className="text-center pt-4">
+                 <button onClick={handleLogout} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors mx-auto text-sm">
+                    <LogOut size={14} />
                     <span>Logout</span>
                 </button>
             </div>
 
-            {/* About Section */}
-            <div className="text-center text-sm text-light-subtle-text dark:text-dark-subtle-text pt-4">
+            <div className="text-center text-xs text-light-subtle-text dark:text-dark-subtle-text pt-6">
                 <p>Mine Safety Reporter v1.0.0</p>
-                <p>Made by Ashutosh Tripathi, BSP, SAIL.</p>
+                <p>Made by Ankita and Ashutosh Tripathi for SAIL.</p>
             </div>
         </div>
     );

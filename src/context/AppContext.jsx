@@ -1,72 +1,66 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { db } from '../firebaseConfig'; // Import your Firebase config
-import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, setDoc } from 'firebase/firestore';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { db } from '../firebaseConfig';
+import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, setDoc, where, getDocs } from 'firebase/firestore';
 import { generateIncidentId, MINES, SECTIONS, INCIDENT_TYPES } from '../utils/mockData';
 import { format } from 'date-fns';
+import { AuthContext } from './AuthContext';
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const { currentUser } = useContext(AuthContext);
   const [incidents, setIncidents] = useState([]);
   const [dailySubmissions, setDailySubmissions] = useState({});
   const [loading, setLoading] = useState(true);
-  const [user, setUserState] = useState({
-    firstName: 'Ashutosh',
-    lastName: 'Tripathi',
-    fullName: 'Ashutosh Tripathi',
-  });
+  const [user, setUser] = useState({ fullName: '', email: '' });
+
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const currentDateStr = format(new Date('2025-08-05T10:00:00Z'), 'yyyy-MM-dd');
 
-  // --- Firestore Data Fetching ---
   useEffect(() => {
+    if (!currentUser) {
+        setLoading(false);
+        return; // Don't fetch data if user is not logged in
+    }
+
+    // Fetch the custom userId from the 'users' collection
+    const fetchUserDetails = async () => {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", currentUser.email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0].data();
+            setUser({ fullName: userDoc.userId, email: userDoc.email });
+        } else {
+            setUser({ fullName: currentUser.email, email: currentUser.email }); // Fallback
+        }
+    };
+    fetchUserDetails();
+
     setLoading(true);
-    // Listener for Incidents
     const incidentsCollection = collection(db, 'incidents');
     const qIncidents = query(incidentsCollection, orderBy('date', 'desc'));
     const unsubscribeIncidents = onSnapshot(qIncidents, (snapshot) => {
-      const incidentsData = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        docId: doc.id,
-      }));
+      const incidentsData = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
       setIncidents(incidentsData);
       setLoading(false);
     });
 
-    // Listener for Daily Submissions for the current day
     const dailySubmissionsDoc = doc(db, 'dailySubmissions', currentDateStr);
     const unsubscribeSubmissions = onSnapshot(dailySubmissionsDoc, (doc) => {
-        if (doc.exists()) {
-            setDailySubmissions(doc.data());
-        } else {
-            setDailySubmissions({});
-        }
+        setDailySubmissions(doc.exists() ? doc.data() : {});
     });
 
-
-    // Cleanup function to stop listening when the component unmounts
     return () => {
         unsubscribeIncidents();
         unsubscribeSubmissions();
     };
-  }, [currentDateStr]);
+  }, [currentUser, currentDateStr]);
 
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  const setUser = (userData) => {
-    setUserState({ ...user, ...userData, fullName: `${userData.firstName} ${userData.lastName}` });
-  };
-
-  // --- Firestore Data Modification ---
   const addIncident = async (incidentData) => {
     const newIncident = {
       ...incidentData,
+      reporterName: user.fullName, // This will now be the custom User ID
       id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
       status: 'Open',
       mandaysLost: incidentData.type === 'Lost Time Injury (LTI)' ? 0 : null,
@@ -138,8 +132,6 @@ export const AppProvider = ({ children }) => {
   const submitNoAccident = async (mineName) => {
     const dailySubmissionsDoc = doc(db, 'dailySubmissions', currentDateStr);
     try {
-        // Using setDoc with { merge: true } will create the document if it doesn't exist,
-        // or update it if it does, without overwriting the whole document.
         await setDoc(dailySubmissionsDoc, {
             [mineName]: { status: 'No Accident', submittedAt: new Date().toISOString() }
         }, { merge: true });
@@ -148,21 +140,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
   const value = {
-    incidents,
-    loading,
-    addIncident,
-    updateIncident,
-    addComment,
-    dailySubmissions,
-    submitNoAccident,
-    user,
-    setUser,
-    theme,
-    toggleTheme,
-    MINES,
-    SECTIONS,
-    INCIDENT_TYPES,
+    incidents, loading, addIncident, updateIncident, addComment,
+    dailySubmissions, submitNoAccident, user, theme, toggleTheme,
+    MINES, SECTIONS, INCIDENT_TYPES,
     currentDate: new Date('2025-08-05T10:00:00Z'),
   };
 

@@ -1,55 +1,58 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { mockIncidents, generateIncidentId, MINES, SECTIONS, INCIDENT_TYPES } from '../utils/mockData';
-import { format } from 'date-fns';
+import { db } from '../firebaseConfig'; // Import your Firebase config
+import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { generateIncidentId, MINES, SECTIONS, INCIDENT_TYPES } from '../utils/mockData';
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [incidents, setIncidents] = useState(mockIncidents);
-  const [dailySubmissions, setDailySubmissions] = useState(() => {
-     // Initialize submissions with some random data for today
-     const today = new Date('2025-08-05');
-     const initialSubmissions = {};
-     MINES.forEach(mine => {
-         const rand = Math.random();
-         if (rand < 0.7) { // 70% submitted 'No Accident'
-             initialSubmissions[mine] = { status: 'No Accident', submittedAt: today };
-         } else if (rand < 0.8) { // 10% have an LTI
-            // This part is tricky as we need to ensure an LTI exists for this mine today
-            // For simplicity, we'll just mark it and assume data consistency
-            initialSubmissions[mine] = { status: 'Accident', submittedAt: today };
-         }
-         // The rest are 'No Submission' by default
-     });
-     return initialSubmissions;
-  });
-  
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // Daily submissions and user can remain as local state for now
+  const [dailySubmissions, setDailySubmissions] = useState({});
   const [user, setUserState] = useState({
     firstName: 'Ashutosh',
     lastName: 'Tripathi',
     fullName: 'Ashutosh Tripathi',
   });
-
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
+  // --- Firestore Data Fetching ---
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+    setLoading(true);
+    const incidentsCollection = collection(db, 'incidents');
+    const q = query(incidentsCollection, orderBy('date', 'desc')); // Order by date descending
+
+    // onSnapshot listens for real-time updates
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const incidentsData = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        // Firestore timestamps need to be converted to JS dates if needed,
+        // but for this app, we store dates as strings which is simpler.
+        docId: doc.id, // Keep the document ID for updates
+      }));
+      setIncidents(incidentsData);
+      setLoading(false);
+    });
+
+    // Cleanup function to stop listening when the component unmounts
+    return () => unsubscribe();
+  }, []);
+
 
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
   const setUser = (userData) => {
     setUserState({ ...user, ...userData, fullName: `${userData.firstName} ${userData.lastName}` });
   };
 
-  const addIncident = (incidentData) => {
+  // --- Firestore Data Modification ---
+  const addIncident = async (incidentData) => {
     const newIncident = {
       ...incidentData,
       id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
@@ -64,52 +67,67 @@ export const AppProvider = ({ children }) => {
         },
       ],
       photos: incidentData.photos || [],
+      createdAt: serverTimestamp(), // Firestore server timestamp
     };
-    setIncidents(prev => [newIncident, ...prev]);
-    return newIncident;
+
+    try {
+      const incidentsCollection = collection(db, 'incidents');
+      const docRef = await addDoc(incidentsCollection, newIncident);
+      return { ...newIncident, docId: docRef.id }; // Return the new incident with its ID
+    } catch (error) {
+      console.error("Error adding document: ", error);
+    }
   };
 
-  const updateIncident = (incidentId, updates) => {
-    setIncidents(prev =>
-      prev.map(inc => {
-        if (inc.id === incidentId) {
-          const newHistory = [
-            ...inc.history,
-            {
-              user: user.fullName,
-              action: `Updated fields: ${Object.keys(updates).join(', ')}`,
-              timestamp: new Date().toISOString(),
-            },
-          ];
-          return { ...inc, ...updates, history: newHistory };
-        }
-        return inc;
-      })
-    );
+  const updateIncident = async (docId, updates) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+    
+    // To add to the history array, we need to get the existing incident first
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+
+    const newHistory = [
+      ...incidentToUpdate.history,
+      {
+        user: user.fullName,
+        action: `Updated fields: ${Object.keys(updates).join(', ')}`,
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
+    try {
+      await updateDoc(incidentDoc, { ...updates, history: newHistory });
+    } catch (error) {
+      console.error("Error updating document: ", error);
+    }
   };
 
-  const addComment = (incidentId, commentText) => {
-    setIncidents(prev =>
-      prev.map(inc => {
-        if (inc.id === incidentId) {
-          const newComment = {
-            user: user.fullName,
-            text: commentText,
-            timestamp: new Date().toISOString(),
-          };
-          const newHistory = [
-            ...inc.history,
-            {
-              user: user.fullName,
-              action: 'Added a comment',
-              timestamp: new Date().toISOString(),
-            },
-          ];
-          return { ...inc, comments: [...inc.comments, newComment], history: newHistory };
-        }
-        return inc;
-      })
-    );
+  const addComment = async (docId, commentText) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+
+    const newComment = {
+      user: user.fullName,
+      text: commentText,
+      timestamp: new Date().toISOString(),
+    };
+    const newComments = [...incidentToUpdate.comments, newComment];
+    const newHistory = [
+      ...incidentToUpdate.history,
+      {
+        user: user.fullName,
+        action: 'Added a comment',
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
+    try {
+      await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
+    } catch (error) {
+      console.error("Error adding comment: ", error);
+    }
   };
   
   const submitNoAccident = (mineName) => {
@@ -121,6 +139,7 @@ export const AppProvider = ({ children }) => {
 
   const value = {
     incidents,
+    loading, // Pass loading state to the app
     addIncident,
     updateIncident,
     addComment,
@@ -133,7 +152,6 @@ export const AppProvider = ({ children }) => {
     MINES,
     SECTIONS,
     INCIDENT_TYPES,
-    // Add a fixed date for consistency across the app
     currentDate: new Date('2025-08-05T10:00:00Z'),
   };
 

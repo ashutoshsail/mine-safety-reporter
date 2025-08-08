@@ -12,7 +12,8 @@ export const AppProvider = ({ children }) => {
   const [incidents, setIncidents] = useState([]);
   const [dailySubmissions, setDailySubmissions] = useState({});
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ fullName: '', email: '' });
+  // This state will now hold the user's full details
+  const [user, setUser] = useState({ name: '', userId: '', email: '' });
 
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const currentDateStr = format(new Date('2025-08-05T10:00:00Z'), 'yyyy-MM-dd');
@@ -20,19 +21,20 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser) {
         setLoading(false);
-        return; // Don't fetch data if user is not logged in
+        return; 
     }
 
-    // Fetch the custom userId from the 'users' collection
+    // Fetch the user's full name and userId from the 'users' collection
     const fetchUserDetails = async () => {
         const usersRef = collection(db, "users");
         const q = query(usersRef, where("email", "==", currentUser.email));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0].data();
-            setUser({ fullName: userDoc.userId, email: userDoc.email });
+            // Set the user state with the full name for display
+            setUser({ name: userDoc.name, userId: userDoc.userId, email: userDoc.email });
         } else {
-            setUser({ fullName: currentUser.email, email: currentUser.email }); // Fallback
+            setUser({ name: currentUser.email, userId: 'N/A', email: currentUser.email }); // Fallback
         }
     };
     fetchUserDetails();
@@ -60,14 +62,14 @@ export const AppProvider = ({ children }) => {
   const addIncident = async (incidentData) => {
     const newIncident = {
       ...incidentData,
-      reporterName: user.fullName, // This will now be the custom User ID
+      reporterName: user.name, // Use the user's real name
       id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
       status: 'Open',
       mandaysLost: incidentData.type === 'Lost Time Injury (LTI)' ? 0 : null,
       comments: [],
       history: [
         {
-          user: user.fullName,
+          user: user.name, // Use the user's real name
           action: 'Created Report',
           timestamp: new Date().toISOString(),
         },
@@ -85,31 +87,12 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const updateIncident = async (docId, updates) => {
-    const incidentDoc = doc(db, 'incidents', docId);
-    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
-    if (!incidentToUpdate) return;
-    const newHistory = [
-      ...incidentToUpdate.history,
-      {
-        user: user.fullName,
-        action: `Updated fields: ${Object.keys(updates).join(', ')}`,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-    try {
-      await updateDoc(incidentDoc, { ...updates, history: newHistory });
-    } catch (error) {
-      console.error("Error updating document: ", error);
-    }
-  };
-
   const addComment = async (docId, commentText) => {
     const incidentDoc = doc(db, 'incidents', docId);
     const incidentToUpdate = incidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
     const newComment = {
-      user: user.fullName,
+      user: user.name, // Use the user's real name
       text: commentText,
       timestamp: new Date().toISOString(),
     };
@@ -117,7 +100,7 @@ export const AppProvider = ({ children }) => {
     const newHistory = [
       ...incidentToUpdate.history,
       {
-        user: user.fullName,
+        user: user.name, // Use the user's real name
         action: 'Added a comment',
         timestamp: new Date().toISOString(),
       },
@@ -126,6 +109,27 @@ export const AppProvider = ({ children }) => {
       await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
     } catch (error) {
       console.error("Error adding comment: ", error);
+    }
+  };
+
+  // --- Other functions (updateIncident, submitNoAccident, toggleTheme) remain the same ---
+  
+  const updateIncident = async (docId, updates) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+    const newHistory = [
+      ...incidentToUpdate.history,
+      {
+        user: user.name,
+        action: `Updated fields: ${Object.keys(updates).join(', ')}`,
+        timestamp: new Date().toISOString(),
+      },
+    ];
+    try {
+      await updateDoc(incidentDoc, { ...updates, history: newHistory });
+    } catch (error) {
+      console.error("Error updating document: ", error);
     }
   };
   
@@ -146,7 +150,7 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
-
+  
   const value = {
     incidents, loading, addIncident, updateIncident, addComment,
     dailySubmissions, submitNoAccident, user, theme, toggleTheme,

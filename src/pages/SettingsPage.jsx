@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext'; // Use AuthContext
+import { AuthContext } from '../context/AuthContext';
 import { AppContext } from '../context/AppContext';
 import { Sun, Moon, LogOut } from 'lucide-react';
 
@@ -23,7 +23,8 @@ const SettingsPage = () => {
             <div className="bg-light-card dark:bg-dark-card p-6 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-2">User Profile</h2>
                 <p className="text-light-subtle-text dark:text-dark-subtle-text">You are logged in as:</p>
-                <p className="font-semibold">{user.fullName}</p>
+                <p className="font-semibold text-lg">{user.name}</p>
+                <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">User ID: {user.userId}</p>
             </div>
 
             {/* Appearance Section */}
@@ -50,7 +51,7 @@ const SettingsPage = () => {
             {/* About Section */}
             <div className="text-center text-sm text-light-subtle-text dark:text-dark-subtle-text pt-4">
                 <p>Mine Safety Reporter v1.0.0</p>
-                <p>Made by Ankita & Ashutosh Tripathi for SAIL</p>
+                <p>Made by Ashutosh Tripathi, BSP, SAIL.</p>
             </div>
         </div>
     );

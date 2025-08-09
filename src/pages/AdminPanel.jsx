@@ -1,77 +1,126 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { db } from '../firebaseConfig';
-import { collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { mockIncidents } from '../utils/mockData';
 import { serverTimestamp } from 'firebase/firestore';
-import { ShieldCheck, DatabaseZap, Trash2 } from 'lucide-react';
+import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check } from 'lucide-react';
+
+// Reusable component to manage each configuration list
+const ConfigManager = ({ title, collectionName, items, fields }) => {
+    const [newItem, setNewItem] = useState(fields.reduce((acc, field) => ({ ...acc, [field]: '' }), {}));
+    const [editingItem, setEditingItem] = useState(null);
+
+    const handleAddItem = async (e) => {
+        e.preventDefault();
+        if (!newItem.name) return;
+        await addDoc(collection(db, collectionName), { ...newItem, isActive: true });
+        setNewItem(fields.reduce((acc, field) => ({ ...acc, [field]: '' }), {}));
+    };
+
+    const handleUpdateItem = async (item) => {
+        const itemDoc = doc(db, collectionName, item.id);
+        await updateDoc(itemDoc, editingItem);
+        setEditingItem(null);
+    };
+
+    const handleToggleActive = async (item) => {
+        const itemDoc = doc(db, collectionName, item.id);
+        await updateDoc(itemDoc, { isActive: !item.isActive });
+    };
+
+    return (
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+            <h3 className="font-semibold mb-2">{title}</h3>
+            <form onSubmit={handleAddItem} className="flex gap-2 mb-3">
+                <input
+                    type="text"
+                    value={newItem.name || ''}
+                    onChange={(e) => setNewItem({ name: e.target.value })}
+                    placeholder={`New ${title.slice(0, -1)} Name...`}
+                    className="flex-grow bg-light-card dark:bg-dark-card p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm"
+                />
+                <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white p-2 rounded-md"><Plus size={20} /></button>
+            </form>
+            <ul className="space-y-2">
+                {items.map(item => (
+                    <li key={item.id} className="flex items-center justify-between bg-light-card dark:bg-dark-card p-2 rounded-md text-sm">
+                        {editingItem?.id === item.id ? (
+                            <input
+                                type="text"
+                                value={editingItem.name}
+                                onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                                className="flex-grow bg-slate-100 dark:bg-slate-700 p-1 rounded-md text-sm"
+                            />
+                        ) : (
+                            <span className={!item.isActive ? 'line-through text-slate-400' : ''}>{item.name}</span>
+                        )}
+                        <div className="flex items-center gap-2">
+                            {editingItem?.id === item.id ? (
+                                <>
+                                    <button onClick={() => handleUpdateItem(item)}><Check size={18} className="text-green-500" /></button>
+                                    <button onClick={() => setEditingItem(null)}><X size={18} className="text-red-500" /></button>
+                                </>
+                            ) : (
+                                <button onClick={() => setEditingItem(item)}><Edit size={16} className="text-slate-500" /></button>
+                            )}
+                            <button onClick={() => handleToggleActive(item)}>
+                                {item.isActive ? <ToggleRight size={24} className="text-green-500" /> : <ToggleLeft size={24} className="text-slate-400" />}
+                            </button>
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 
 const AdminPanel = () => {
-    const { demoMode, setDemoMode } = useContext(AppContext);
+    const { demoMode, setDemoMode, minesConfig, sectionsConfig, incidentTypesConfig } = useContext(AppContext);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
     const handleLoadDemoData = async () => {
-        if (!window.confirm("Are you sure you want to load 250 mock incidents into the database? This cannot be undone easily.")) {
-            return;
-        }
+        if (!window.confirm("Are you sure you want to load 250 mock incidents into the database?")) return;
         setLoading(true);
-        setMessage('Loading demo data... this may take a moment.');
-
+        setMessage('Loading demo data...');
         try {
             const batch = writeBatch(db);
             const incidentsCollection = collection(db, 'incidents');
-
             mockIncidents.forEach(incident => {
-                const docRef = doc(incidentsCollection); // Firestore will auto-generate an ID
-                const incidentWithDemoTag = {
-                    ...incident,
-                    isDemo: true, // Add the demo tag
-                    createdAt: serverTimestamp() // Use a proper server timestamp
-                };
-                batch.set(docRef, incidentWithDemoTag);
+                const docRef = doc(incidentsCollection);
+                batch.set(docRef, { ...incident, isDemo: true, createdAt: serverTimestamp() });
             });
-
             await batch.commit();
             setDemoMode(true);
             setMessage('Successfully loaded 250 mock incidents.');
         } catch (error) {
-            console.error("Error loading demo data: ", error);
-            setMessage('Failed to load demo data. Check the console for errors.');
+            setMessage('Failed to load demo data.');
         }
         setLoading(false);
     };
 
     const handleClearDemoData = async () => {
-        if (!window.confirm("Are you sure you want to delete all demo incidents from the database? This is permanent.")) {
-            return;
-        }
+        if (!window.confirm("Are you sure you want to delete all demo incidents? This is permanent.")) return;
         setLoading(true);
         setMessage('Deleting demo data...');
-
         try {
-            const incidentsCollection = collection(db, 'incidents');
-            const q = query(incidentsCollection, where("isDemo", "==", true));
-            const querySnapshot = await getDocs(q);
-            
-            if (querySnapshot.empty) {
-                setMessage("No demo data found to delete.");
+            const q = query(collection(db, 'incidents'), where("isDemo", "==", true));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                setMessage("No demo data found.");
                 setLoading(false);
                 setDemoMode(false);
                 return;
             }
-
             const batch = writeBatch(db);
-            querySnapshot.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-
+            snapshot.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
             setDemoMode(false);
-            setMessage(`Successfully deleted ${querySnapshot.size} demo incidents.`);
+            setMessage(`Successfully deleted ${snapshot.size} demo incidents.`);
         } catch (error) {
-            console.error("Error clearing demo data: ", error);
-            setMessage('Failed to clear demo data. Check the console for errors.');
+            setMessage('Failed to clear demo data.');
         }
         setLoading(false);
     };
@@ -84,30 +133,29 @@ const AdminPanel = () => {
             </div>
 
             <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                <h2 className="text-lg font-semibold mb-3">Manage Configuration</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <ConfigManager title="Mines" collectionName="config_mines" items={minesConfig} fields={['name']} />
+                    <ConfigManager title="Sections" collectionName="config_sections" items={sectionsConfig} fields={['name']} />
+                    <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig} fields={['name']} />
+                </div>
+            </div>
+
+            <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-3">Demo Mode Controls</h2>
                 <div className="space-y-3">
                     <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">
-                        Use these controls to populate the app with mock data for demonstration purposes. This data is tagged and can be cleared at any time.
+                        Populate the app with mock data for demonstration purposes. This data is tagged and can be cleared at any time.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <button 
-                            onClick={handleLoadDemoData} 
-                            disabled={loading}
-                            className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50"
-                        >
-                            <DatabaseZap size={16} />
-                            <span>Load Demo Data</span>
+                        <button onClick={handleLoadDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
+                            <DatabaseZap size={16} /><span>Load Demo Data</span>
                         </button>
-                        <button 
-                            onClick={handleClearDemoData} 
-                            disabled={loading}
-                            className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50"
-                        >
-                            <Trash2 size={16} />
-                            <span>Clear Demo Data</span>
+                        <button onClick={handleClearDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
+                            <Trash2 size={16} /><span>Clear Demo Data</span>
                         </button>
                     </div>
-                    {loading && <p className="text-sm">{message}</p>}
+                    {loading && <p className="text-sm animate-pulse">{message}</p>}
                     {!loading && message && <p className="text-sm font-semibold text-green-600 dark:text-green-400">{message}</p>}
                 </div>
             </div>

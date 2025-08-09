@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
+import { ConfigContext } from '../context/ConfigContext'; // Import the new context
 import { db } from '../firebaseConfig';
 import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { mockIncidents } from '../utils/mockData';
@@ -7,14 +8,14 @@ import { serverTimestamp } from 'firebase/firestore';
 import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check } from 'lucide-react';
 import AssignSections from '../components/AssignSections';
 
-const ConfigManager = ({ title, collectionName, items, fields }) => {
+const ConfigManager = ({ title, collectionName, items }) => {
     const [newItem, setNewItem] = useState({ name: '' });
     const [editingItem, setEditingItem] = useState(null);
 
     const handleAddItem = async (e) => {
         e.preventDefault();
         if (!newItem.name) return;
-        await addDoc(collection(db, collectionName), { ...newItem, isActive: true, name: newItem.name });
+        await addDoc(collection(db, collectionName), { name: newItem.name, isActive: true });
         setNewItem({ name: '' });
     };
 
@@ -80,7 +81,9 @@ const ConfigManager = ({ title, collectionName, items, fields }) => {
 
 
 const AdminPanel = () => {
-    const { demoMode, setDemoMode, minesConfig, sectionsConfig, incidentTypesConfig } = useContext(AppContext);
+    const { demoMode, setDemoMode } = useContext(AppContext);
+    // Get the config lists from the new context
+    const { minesConfig, sectionsConfig, incidentTypesConfig } = useContext(ConfigContext);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
@@ -140,9 +143,9 @@ const AdminPanel = () => {
             <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-3">Manage Configuration</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <ConfigManager title="Mines" collectionName="config_mines" items={minesConfig || []} fields={['name']} />
-                    <ConfigManager title="Sections" collectionName="config_sections" items={sectionsConfig || []} fields={['name']} />
-                    <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig || []} fields={['name']} />
+                    <ConfigManager title="Mines" collectionName="config_mines" items={minesConfig} />
+                    <ConfigManager title="Sections" collectionName="config_sections" items={sectionsConfig} />
+                    <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig} />
                     <div className="md:col-span-2 lg:col-span-3">
                         <AssignSections />
                     </div>

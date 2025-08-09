@@ -4,19 +4,16 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query,
 import { generateIncidentId } from '../utils/mockData';
 import { format } from 'date-fns';
 import { AuthContext } from './AuthContext';
+import { ConfigContext } from './ConfigContext';
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const { currentUser } = useContext(AuthContext);
+  const { MINES } = useContext(ConfigContext);
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ name: '', userId: '', email: '', isAdmin: false });
-  
-  const [minesConfig, setMinesConfig] = useState([]);
-  const [sectionsConfig, setSectionsConfig] = useState([]);
-  const [incidentTypesConfig, setIncidentTypesConfig] = useState([]);
-
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [navPreference, setNavPreference] = useState(localStorage.getItem('navPreference') || 'fab');
   const [demoMode, setDemoMode] = useState(localStorage.getItem('demoMode') === 'true');
@@ -45,8 +42,7 @@ export const AppProvider = ({ children }) => {
 
   const getUserLastSelectedMine = () => {
     if(currentUser) {
-      const activeMines = minesConfig.filter(m => m.isActive).map(m => m.name);
-      return localStorage.getItem(`lastMine_${currentUser.uid}`) || (activeMines.length > 0 ? activeMines[0] : '');
+      return localStorage.getItem(`lastMine_${currentUser.uid}`) || (MINES.length > 0 ? MINES[0] : '');
     }
     return '';
   };
@@ -85,16 +81,7 @@ export const AppProvider = ({ children }) => {
         setLoading(false);
     });
 
-    const unsubMines = onSnapshot(query(collection(db, 'config_mines'), orderBy('name')), snapshot => setMinesConfig(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
-    const unsubSections = onSnapshot(query(collection(db, 'config_sections'), orderBy('name')), snapshot => setSectionsConfig(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
-    const unsubIncidentTypes = onSnapshot(query(collection(db, 'config_incident_types'), orderBy('name')), snapshot => setIncidentTypesConfig(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
-
-    return () => {
-      unsubscribeIncidents();
-      unsubMines();
-      unsubSections();
-      unsubIncidentTypes();
-    };
+    return () => unsubscribeIncidents();
   }, [currentUser, demoMode]);
   
   const addIncident = async (incidentData) => {
@@ -145,10 +132,6 @@ export const AppProvider = ({ children }) => {
     user, theme, toggleTheme, navPreference, updateNavPreference,
     updateUserLastSelectedMine, getUserLastSelectedMine,
     demoMode, setDemoMode: setDemoModeAndUpdateStorage,
-    MINES: minesConfig.filter(m => m.isActive).map(m => m.name),
-    SECTIONS: sectionsConfig.filter(s => s.isActive).map(s => s.name),
-    INCIDENT_TYPES: incidentTypesConfig.filter(it => it.isActive).map(it => it.name),
-    minesConfig, sectionsConfig, incidentTypesConfig,
     currentDate: new Date('2025-08-05T10:00:00Z'),
   };
 

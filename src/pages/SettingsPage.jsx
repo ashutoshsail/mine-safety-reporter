@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { AppContext } from '../context/AppContext';
-import { Sun, Moon, LogOut, Smartphone, MousePointerClick } from 'lucide-react';
+import { Sun, Moon, LogOut, Smartphone, MousePointerClick, TestTube2 } from 'lucide-react';
 
 const Switch = ({ checked, onChange }) => (
     <button onClick={onChange} className={`relative inline-flex items-center h-8 w-14 rounded-full transition-colors ${checked ? 'bg-light-accent' : 'bg-slate-300 dark:bg-slate-600'}`}>
@@ -10,16 +10,8 @@ const Switch = ({ checked, onChange }) => (
 );
 
 const SettingsPage = () => {
-    const { user, theme, toggleTheme, navPreference, updateNavPreference } = useContext(AppContext);
+    const { user, theme, toggleTheme, navPreference, updateNavPreference, demoMode, setDemoMode } = useContext(AppContext);
     const { logout } = useContext(AuthContext);
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } catch (error) {
-            console.error("Failed to log out", error);
-        }
-    };
 
     return (
         <div className="max-w-2xl mx-auto space-y-4">
@@ -47,9 +39,22 @@ const SettingsPage = () => {
                     <Switch checked={navPreference === 'bottom'} onChange={() => updateNavPreference(navPreference === 'fab' ? 'bottom' : 'fab')} />
                  </div>
             </div>
+
+            {user.isAdmin && (
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md space-y-4">
+                    <h3 className="text-base font-semibold">Admin Controls</h3>
+                    <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm font-semibold">
+                            <TestTube2 size={16} />
+                            <span>Demo Mode</span>
+                        </label>
+                        <Switch checked={demoMode} onChange={() => setDemoMode(!demoMode)} />
+                    </div>
+                </div>
+            )}
             
             <div className="text-center pt-4">
-                 <button onClick={handleLogout} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors mx-auto text-sm">
+                 <button onClick={logout} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors mx-auto text-sm">
                     <LogOut size={14} />
                     <span>Logout</span>
                 </button>

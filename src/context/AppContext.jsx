@@ -13,7 +13,6 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ name: '', userId: '', email: '', isAdmin: false });
   
-  // Initialize config state with empty arrays to prevent crashes
   const [minesConfig, setMinesConfig] = useState([]);
   const [sectionsConfig, setSectionsConfig] = useState([]);
   const [incidentTypesConfig, setIncidentTypesConfig] = useState([]);
@@ -46,7 +45,6 @@ export const AppProvider = ({ children }) => {
 
   const getUserLastSelectedMine = () => {
     if(currentUser) {
-      // Use a default from the loaded config if available
       const activeMines = minesConfig.filter(m => m.isActive).map(m => m.name);
       return localStorage.getItem(`lastMine_${currentUser.uid}`) || (activeMines.length > 0 ? activeMines[0] : '');
     }
@@ -99,10 +97,48 @@ export const AppProvider = ({ children }) => {
     };
   }, [currentUser, demoMode]);
   
-  const addIncident = async (incidentData) => { /* ... function code ... */ };
-  const updateIncident = async (docId, updates) => { /* ... function code ... */ };
-  const addComment = async (docId, commentText) => { /* ... function code ... */ };
-  const submitNoAccident = async (mineName, date) => { /* ... function code ... */ };
+  const addIncident = async (incidentData) => {
+    const newIncident = {
+      ...incidentData,
+      reporterName: user.name,
+      id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
+      status: 'Open',
+      mandaysLost: incidentData.type === 'Lost Time Injury (LTI)' ? 0 : null,
+      comments: [],
+      history: [{ user: user.name, action: 'Created Report', timestamp: new Date().toISOString() }],
+      createdAt: serverTimestamp(),
+      isDemo: false,
+    };
+    const incidentsCollection = collection(db, 'incidents');
+    const docRef = await addDoc(incidentsCollection, newIncident);
+    return { ...newIncident, docId: docRef.id };
+  };
+
+  const updateIncident = async (docId, updates) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+    const newHistory = [...incidentToUpdate.history, { user: user.name, action: `Updated fields: ${Object.keys(updates).join(', ')}`, timestamp: new Date().toISOString() }];
+    await updateDoc(incidentDoc, { ...updates, history: newHistory });
+  };
+
+  const addComment = async (docId, commentText) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+    const newComment = { user: user.name, text: commentText, timestamp: new Date().toISOString() };
+    const newComments = [...incidentToUpdate.comments, newComment];
+    const newHistory = [...incidentToUpdate.history, { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
+    await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
+  };
+
+  const submitNoAccident = async (mineName, date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
+    await setDoc(dailySubmissionsDoc, {
+        [mineName]: { status: 'No Accident', submittedAt: new Date().toISOString(), submittedBy: user.name }
+    }, { merge: true });
+  };
 
   const value = {
     incidents, loading, addIncident, updateIncident, addComment, submitNoAccident,

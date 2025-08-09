@@ -5,9 +5,8 @@ import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc }
 import { mockIncidents } from '../utils/mockData';
 import { serverTimestamp } from 'firebase/firestore';
 import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check } from 'lucide-react';
-import AssignSections from '../components/AssignSections'; // <-- Import the new component
+import AssignSections from '../components/AssignSections';
 
-// Reusable component to manage each configuration list
 const ConfigManager = ({ title, collectionName, items, fields }) => {
     const [newItem, setNewItem] = useState({ name: '' });
     const [editingItem, setEditingItem] = useState(null);
@@ -46,6 +45,7 @@ const ConfigManager = ({ title, collectionName, items, fields }) => {
                 <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white p-2 rounded-md"><Plus size={20} /></button>
             </form>
             <ul className="space-y-2">
+                {/* Safety check to prevent crash if items is undefined */}
                 {items && items.map(item => (
                     <li key={item.id} className="flex items-center justify-between bg-light-card dark:bg-dark-card p-2 rounded-md text-sm">
                         {editingItem?.id === item.id ? (
@@ -84,8 +84,51 @@ const AdminPanel = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    const handleLoadDemoData = async () => { /* ... function code ... */ };
-    const handleClearDemoData = async () => { /* ... function code ... */ };
+    const handleLoadDemoData = async () => {
+        if (!window.confirm("Are you sure you want to load 250 mock incidents into the database?")) return;
+        setLoading(true);
+        setMessage('Loading demo data...');
+        try {
+            const batch = writeBatch(db);
+            const incidentsCollection = collection(db, 'incidents');
+            mockIncidents.forEach(incident => {
+                const docRef = doc(incidentsCollection);
+                batch.set(docRef, { ...incident, isDemo: true, createdAt: serverTimestamp() });
+            });
+            await batch.commit();
+            setDemoMode(true);
+            setMessage('Successfully loaded 250 mock incidents.');
+        } catch (error) {
+            setMessage('Failed to load demo data.');
+            console.error(error);
+        }
+        setLoading(false);
+    };
+
+    const handleClearDemoData = async () => {
+        if (!window.confirm("Are you sure you want to delete all demo incidents? This is permanent.")) return;
+        setLoading(true);
+        setMessage('Deleting demo data...');
+        try {
+            const q = query(collection(db, 'incidents'), where("isDemo", "==", true));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                setMessage("No demo data found.");
+                setLoading(false);
+                setDemoMode(false);
+                return;
+            }
+            const batch = writeBatch(db);
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            setDemoMode(false);
+            setMessage(`Successfully deleted ${snapshot.size} demo incidents.`);
+        } catch (error) {
+            setMessage('Failed to clear demo data.');
+            console.error(error);
+        }
+        setLoading(false);
+    };
 
     return (
         <div className="max-w-4xl mx-auto space-y-4">
@@ -97,10 +140,9 @@ const AdminPanel = () => {
             <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-3">Manage Configuration</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <ConfigManager title="Mines" collectionName="config_mines" items={minesConfig} fields={['name']} />
-                    <ConfigManager title="Sections" collectionName="config_sections" items={sectionsConfig} fields={['name']} />
-                    <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig} fields={['name']} />
-                    {/* Add the new component here */}
+                    <ConfigManager title="Mines" collectionName="config_mines" items={minesConfig || []} fields={['name']} />
+                    <ConfigManager title="Sections" collectionName="config_sections" items={sectionsConfig || []} fields={['name']} />
+                    <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig || []} fields={['name']} />
                     <div className="md:col-span-2 lg:col-span-3">
                         <AssignSections />
                     </div>
@@ -109,7 +151,21 @@ const AdminPanel = () => {
 
             <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-3">Demo Mode Controls</h2>
-                {/* ... Demo mode JSX remains the same ... */}
+                <div className="space-y-3">
+                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">
+                        Populate the app with mock data for demonstration purposes. This data is tagged and can be cleared at any time.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button onClick={handleLoadDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
+                            <DatabaseZap size={16} /><span>Load Demo Data</span>
+                        </button>
+                        <button onClick={handleClearDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
+                            <Trash2 size={16} /><span>Clear Demo Data</span>
+                        </button>
+                    </div>
+                    {loading && <p className="text-sm animate-pulse">{message}</p>}
+                    {!loading && message && <p className="text-sm font-semibold text-green-600 dark:text-green-400">{message}</p>}
+                </div>
             </div>
         </div>
     );

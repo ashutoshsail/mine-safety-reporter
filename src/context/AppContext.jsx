@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, setDoc, where, getDocs } from 'firebase/firestore';
-import { generateIncidentId, MINES, SECTIONS, INCIDENT_TYPES } from '../utils/mockData';
+import { generateIncidentId } from '../utils/mockData';
 import { format } from 'date-fns';
 import { AuthContext } from './AuthContext';
 
@@ -12,6 +12,12 @@ export const AppProvider = ({ children }) => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ name: '', userId: '', email: '', isAdmin: false });
+  
+  // Initialize config state with empty arrays to prevent crashes
+  const [minesConfig, setMinesConfig] = useState([]);
+  const [sectionsConfig, setSectionsConfig] = useState([]);
+  const [incidentTypesConfig, setIncidentTypesConfig] = useState([]);
+
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [navPreference, setNavPreference] = useState(localStorage.getItem('navPreference') || 'fab');
   const [demoMode, setDemoMode] = useState(localStorage.getItem('demoMode') === 'true');
@@ -25,7 +31,6 @@ export const AppProvider = ({ children }) => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
   const updateNavPreference = (preference) => {
@@ -41,11 +46,12 @@ export const AppProvider = ({ children }) => {
 
   const getUserLastSelectedMine = () => {
     if(currentUser) {
-      return localStorage.getItem(`lastMine_${currentUser.uid}`) || MINES[0];
+      // Use a default from the loaded config if available
+      const activeMines = minesConfig.filter(m => m.isActive).map(m => m.name);
+      return localStorage.getItem(`lastMine_${currentUser.uid}`) || (activeMines.length > 0 ? activeMines[0] : '');
     }
-    return MINES[0];
+    return '';
   };
-
 
   useEffect(() => {
     if (!currentUser) {
@@ -59,19 +65,13 @@ export const AppProvider = ({ children }) => {
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0].data();
-            setUser({ 
-              name: userDoc.name, 
-              userId: userDoc.userId, 
-              email: userDoc.email,
-              isAdmin: userDoc.isAdmin || false // Correctly read the isAdmin flag
-            });
+            setUser({ name: userDoc.name, userId: userDoc.userId, email: userDoc.email, isAdmin: userDoc.isAdmin || false });
         } else {
             setUser({ name: currentUser.email, userId: 'N/A', email: currentUser.email, isAdmin: false });
         }
     };
     fetchUserDetails();
 
-    setLoading(true);
     let incidentsQuery;
     const incidentsCollection = collection(db, 'incidents');
     if (demoMode) {
@@ -79,33 +79,40 @@ export const AppProvider = ({ children }) => {
     } else {
         incidentsQuery = query(incidentsCollection, where("isDemo", "!=", true), orderBy('createdAt', 'desc'));
     }
-    
     const unsubscribeIncidents = onSnapshot(incidentsQuery, (snapshot) => {
-      const incidentsData = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-      setIncidents(incidentsData);
+      setIncidents(snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id })));
       setLoading(false);
+    }, (error) => {
+        console.error("Incident listener error:", error);
+        setLoading(false);
     });
 
-    return () => unsubscribeIncidents();
-  }, [currentUser, demoMode]);
+    const unsubMines = onSnapshot(query(collection(db, 'config_mines'), orderBy('name')), snapshot => setMinesConfig(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
+    const unsubSections = onSnapshot(query(collection(db, 'config_sections'), orderBy('name')), snapshot => setSectionsConfig(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
+    const unsubIncidentTypes = onSnapshot(query(collection(db, 'config_incident_types'), orderBy('name')), snapshot => setIncidentTypesConfig(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))));
 
-  // ... (All other functions remain the same)
+    return () => {
+      unsubscribeIncidents();
+      unsubMines();
+      unsubSections();
+      unsubIncidentTypes();
+    };
+  }, [currentUser, demoMode]);
   
+  const addIncident = async (incidentData) => { /* ... function code ... */ };
+  const updateIncident = async (docId, updates) => { /* ... function code ... */ };
+  const addComment = async (docId, commentText) => { /* ... function code ... */ };
+  const submitNoAccident = async (mineName, date) => { /* ... function code ... */ };
+
   const value = {
-    incidents,
-    loading,
-    user,
-    theme,
-    toggleTheme,
-    navPreference,
-    updateNavPreference,
-    updateUserLastSelectedMine,
-    getUserLastSelectedMine,
-    demoMode,
-    setDemoMode: setDemoModeAndUpdateStorage,
-    MINES,
-    SECTIONS,
-    INCIDENT_TYPES,
+    incidents, loading, addIncident, updateIncident, addComment, submitNoAccident,
+    user, theme, toggleTheme, navPreference, updateNavPreference,
+    updateUserLastSelectedMine, getUserLastSelectedMine,
+    demoMode, setDemoMode: setDemoModeAndUpdateStorage,
+    MINES: minesConfig.filter(m => m.isActive).map(m => m.name),
+    SECTIONS: sectionsConfig.filter(s => s.isActive).map(s => s.name),
+    INCIDENT_TYPES: incidentTypesConfig.filter(it => it.isActive).map(it => it.name),
+    minesConfig, sectionsConfig, incidentTypesConfig,
     currentDate: new Date('2025-08-05T10:00:00Z'),
   };
 

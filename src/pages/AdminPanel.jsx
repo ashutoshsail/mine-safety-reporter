@@ -5,7 +5,9 @@ import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc }
 import { mockIncidents } from '../utils/mockData';
 import { serverTimestamp } from 'firebase/firestore';
 import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check } from 'lucide-react';
+import AssignSections from '../components/AssignSections'; // <-- Import the new component
 
+// Reusable component to manage each configuration list
 const ConfigManager = ({ title, collectionName, items, fields }) => {
     const [newItem, setNewItem] = useState({ name: '' });
     const [editingItem, setEditingItem] = useState(null);
@@ -44,7 +46,6 @@ const ConfigManager = ({ title, collectionName, items, fields }) => {
                 <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white p-2 rounded-md"><Plus size={20} /></button>
             </form>
             <ul className="space-y-2">
-                {/* Safety check to prevent crash if items is undefined */}
                 {items && items.map(item => (
                     <li key={item.id} className="flex items-center justify-between bg-light-card dark:bg-dark-card p-2 rounded-md text-sm">
                         {editingItem?.id === item.id ? (
@@ -95,10 +96,14 @@ const AdminPanel = () => {
 
             <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-3">Manage Configuration</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <ConfigManager title="Mines" collectionName="config_mines" items={minesConfig} fields={['name']} />
                     <ConfigManager title="Sections" collectionName="config_sections" items={sectionsConfig} fields={['name']} />
                     <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig} fields={['name']} />
+                    {/* Add the new component here */}
+                    <div className="md:col-span-2 lg:col-span-3">
+                        <AssignSections />
+                    </div>
                 </div>
             </div>
 

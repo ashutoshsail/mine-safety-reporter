@@ -1,5 +1,4 @@
-import React,
-{ createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
@@ -22,7 +21,7 @@ export const ConfigProvider = ({ children }) => {
 
         const unsubIncidentTypes = onSnapshot(query(collection(db, 'config_incident_types'), orderBy('name')), snapshot => {
             setIncidentTypesConfig(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setLoading(false); // Set loading to false after the last config item is fetched
+            setLoading(false); // Set loading to false only after the last config item is fetched
         });
 
         return () => {
@@ -31,6 +30,14 @@ export const ConfigProvider = ({ children }) => {
             unsubIncidentTypes();
         };
     }, []);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-light-background dark:bg-dark-background">
+                <p className="text-lg animate-pulse">Loading Configuration...</p>
+            </div>
+        );
+    }
 
     const value = {
         loading,
@@ -45,7 +52,7 @@ export const ConfigProvider = ({ children }) => {
 
     return (
         <ConfigContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </ConfigContext.Provider>
     );
 };

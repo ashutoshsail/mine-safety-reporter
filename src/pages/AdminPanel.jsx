@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
-import { ConfigContext } from '../context/ConfigContext'; // Import the new context
+import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { mockIncidents } from '../utils/mockData';
@@ -82,7 +82,6 @@ const ConfigManager = ({ title, collectionName, items }) => {
 
 const AdminPanel = () => {
     const { demoMode, setDemoMode } = useContext(AppContext);
-    // Get the config lists from the new context
     const { minesConfig, sectionsConfig, incidentTypesConfig } = useContext(ConfigContext);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');

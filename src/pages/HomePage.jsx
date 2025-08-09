@@ -3,16 +3,42 @@ import { AppContext } from '../context/AppContext';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { ShieldCheck, CheckCircle, AlertTriangle, XCircle, Send } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb } from 'lucide-react';
 
 const safetyTips = [
-    "Always wear your PPE in designated areas.",
-    "Report any unsafe conditions immediately.",
-    "Maintain 3 points of contact when climbing ladders.",
-    "Never operate machinery you are not trained for."
+    "Always wear your Personal Protective Equipment (PPE) in designated areas.",
+    "Report any unsafe conditions or acts to your supervisor immediately.",
+    "Maintain three points of contact when climbing or descending ladders.",
+    "Never operate machinery you are not trained and authorized to use.",
+    "Stay hydrated, especially during hot weather, to avoid heat stress.",
+    "Be aware of your surroundings, especially moving vehicles and equipment.",
+    "Use lockout/tagout procedures before servicing any equipment.",
+    "Keep your work area clean and free of clutter to prevent slips, trips, and falls.",
+    "Never stand under a suspended load.",
+    "Always use the correct tool for the job.",
+    "Inspect your tools and equipment before each use.",
+    "Understand the emergency procedures and the location of emergency exits.",
+    "Don't take shortcuts. Follow all safety procedures, every time.",
+    "Lift with your legs, not your back, to prevent injuries.",
+    "Report all injuries, no matter how minor they seem.",
+    "Ensure all machine guards are in place and functional before operating.",
+    "Communicate clearly with your coworkers, especially during team tasks.",
+    "Avoid distractions like using your mobile phone in work areas.",
+    "Take regular breaks to stay alert and focused.",
+    "Know the location and proper use of fire extinguishers.",
+    "Never work on live electrical equipment unless you are qualified.",
+    "Check for proper ventilation when working in confined spaces.",
+    "Always wear fall protection when working at heights.",
+    "Familiarize yourself with the Material Safety Data Sheets (MSDS) for chemicals you use.",
+    "Do not wear loose clothing or jewelry that could get caught in machinery.",
+    "Practice good posture to avoid ergonomic injuries.",
+    "Ensure proper lighting in your work area.",
+    "Never assume equipment is off. Always verify.",
+    "Participate actively in all safety meetings and training.",
+    "Your safety is your responsibility. Look out for yourself and your team."
 ];
 
-const HomePage = () => {
+const HomePage = ({ setRoute }) => {
     const { incidents, submitNoAccident, MINES, currentDate, user } = useContext(AppContext);
     const [selectedDate, setSelectedDate] = useState(currentDate);
     const [submissionsForDate, setSubmissionsForDate] = useState({});
@@ -20,6 +46,7 @@ const HomePage = () => {
     const [selectedMine, setSelectedMine] = useState(MINES[0]);
     const [submissionMessage, setSubmissionMessage] = useState('');
     const [activeTab, setActiveTab] = useState('no-submission');
+    const [dailyTip] = useState(safetyTips[new Date().getDate() % safetyTips.length]);
 
     useEffect(() => {
         const fetchSubmissions = async () => {
@@ -66,11 +93,15 @@ const HomePage = () => {
 
     return (
         <div className="space-y-4">
-            <h1 className="text-2xl sm:text-3xl font-semibold">Home</h1>
-            <p className="text-light-subtle-text dark:text-dark-subtle-text -mt-2">Hello, <span className="font-semibold">{user.name || 'User'}</span>. Welcome back.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-semibold leading-tight">Home</h1>
+                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">Hello, <span className="font-semibold">{user.name || 'User'}</span></p>
+                </div>
+            </div>
             
             <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
-                <h2 className="text-lg font-semibold mb-2">Daily Submission Status</h2>
+                <h2 className="text-base font-semibold mb-2">Daily Submission Status</h2>
                 <div className="mb-3">
                     <label htmlFor="status-date" className="block text-xs font-semibold mb-1">Select Date</label>
                     <input
@@ -99,7 +130,7 @@ const HomePage = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
-                    <h2 className="text-lg font-semibold mb-1">Report 'No Accident'</h2>
+                    <h2 className="text-base font-semibold mb-1">Report 'No Accident'</h2>
                     <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text mb-3">Submit a "No Accident" report for the date selected above.</p>
                     <form onSubmit={handleNoAccidentSubmit} className="flex gap-2">
                         <select 
@@ -118,11 +149,11 @@ const HomePage = () => {
                 </div>
 
                 <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex items-start gap-3">
-                    <ShieldCheck className="text-light-secondary dark:text-dark-secondary mt-1 flex-shrink-0" size={20} />
                     <div>
-                        <h2 className="text-lg font-semibold mb-0.5">Safety Tip</h2>
-                        <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{safetyTips[Math.floor(Math.random() * safetyTips.length)]}</p>
+                        <h2 className="text-base font-semibold mb-0.5">Safety Tip of the Day</h2>
+                        <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{dailyTip}</p>
                     </div>
+                    <Lightbulb className="text-yellow-400 flex-shrink-0" size={32} />
                 </div>
             </div>
         </div>

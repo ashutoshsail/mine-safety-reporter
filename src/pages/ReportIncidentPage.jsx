@@ -1,6 +1,6 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
-import { ChevronRight, FileText, Download, Edit, CheckCircle, Upload, X, UserPlus, Trash2, Check } from 'lucide-react';
+import { ChevronRight, FileText, Download, CheckCircle, Upload, X, UserPlus, Trash2, Check } from 'lucide-react';
 import IncidentReportPDF from '../components/IncidentReportPDF';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -29,7 +29,7 @@ const ReportIncidentPage = () => {
     const [newIncident, setNewIncident] = useState(null);
     const pdfRef = useRef();
 
-    const isVictimInfoRequired = ['Lost Time Injury (LTI)', 'Fatality', 'Reportable'].includes(formData.type);
+    const isVictimInfoRequired = !['Near Miss', 'High Potential Incident'].includes(formData.type);
 
     const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleVictimChange = (e) => setCurrentVictim(prev => ({...prev, [e.target.name]: e.target.value}));
@@ -102,47 +102,45 @@ const ReportIncidentPage = () => {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                             <FormField label="Reporter Name"><input type="text" value={formData.reporterName} readOnly className="w-full bg-slate-200 dark:bg-slate-800 p-2 rounded-md text-sm cursor-not-allowed" /></FormField>
+                            <FormField label="Incident Type"><select name="type" value={formData.type} onChange={handleInputChange} className={inputClass}>{INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></FormField>
                             <FormField label="Mine"><select name="mine" value={formData.mine} onChange={handleInputChange} className={inputClass}>{MINES.map(m => <option key={m} value={m}>{m}</option>)}</select></FormField>
                             <FormField label="Section"><select name="sectionName" value={formData.sectionName} onChange={handleInputChange} className={inputClass}>{SECTIONS.map(s => <option key={s} value={s}>{s}</option>)}</select></FormField>
-                            {formData.sectionName === 'Other' && <FormField label="Other Section Name"><input type="text" name="otherSection" value={formData.otherSection} onChange={handleInputChange} className={inputClass} required /></FormField>}
+                            {formData.sectionName === 'Other' && <div className="col-span-2"><FormField label="Other Section Name"><input type="text" name="otherSection" value={formData.otherSection} onChange={handleInputChange} className={inputClass} required /></FormField></div>}
                             <FormField label="Date"><input type="date" name="date" value={formData.date} onChange={handleInputChange} className={inputClass} /></FormField>
                             <FormField label="Time"><input type="time" name="time" value={formData.time} onChange={handleInputChange} className={inputClass} /></FormField>
-                            <div className="col-span-2"><FormField label="Incident Type"><select name="type" value={formData.type} onChange={handleInputChange} className={inputClass}>{INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></FormField></div>
                             <div className="col-span-2"><FormField label="Location"><input type="text" name="location" value={formData.location} onChange={handleInputChange} className={inputClass} required /></FormField></div>
                             <div className="col-span-2"><FormField label="Description"><textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className={inputClass} required></textarea></FormField></div>
                         </div>
 
-                        {isVictimInfoRequired && (
-                            <div className="col-span-2 border-t pt-4">
-                                <h3 className="font-semibold mb-2">Victim Details (Required)</h3>
-                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                                        <input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Victim's Name" className={`col-span-2 ${inputClass}`} />
-                                        <select name="category" value={currentVictim.category} onChange={handleVictimChange} className={inputClass}>
-                                            <option>Regular</option>
-                                            <option>Contractual</option>
-                                        </select>
-                                        {currentVictim.category === 'Regular' ? (
-                                            <input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} />
-                                        ) : (
-                                            <>
-                                                <input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} />
-                                                <input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} />
-                                            </>
-                                        )}
-                                    </div>
-                                    <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-green-500' : 'bg-light-accent'}`}>
-                                        {victimFeedback ? <><Check size={16}/> Victim Added</> : <><UserPlus size={16}/> Add Victim</>}
-                                    </button>
+                        <div className="col-span-2 border-t pt-4">
+                            <h3 className="font-semibold mb-2 text-base">Victim Details {isVictimInfoRequired ? '(Required)' : '(Optional)'}</h3>
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                    <input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Victim's Name" className={`col-span-2 ${inputClass}`} />
+                                    <select name="category" value={currentVictim.category} onChange={handleVictimChange} className={inputClass}>
+                                        <option>Regular</option>
+                                        <option>Contractual</option>
+                                    </select>
+                                    {currentVictim.category === 'Regular' ? (
+                                        <input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} />
+                                    ) : (
+                                        <>
+                                            <input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} />
+                                            <input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} />
+                                        </>
+                                    )}
                                 </div>
-                                {formData.victims.map((v, i) => (
-                                    <div key={i} className="flex items-center justify-between p-2 mt-2 bg-slate-100 dark:bg-slate-700 rounded-md text-sm">
-                                        <span>{v.name} ({v.category})</span>
-                                        <button type="button" onClick={() => removeVictim(i)}><Trash2 size={14} className="text-red-500 hover:text-red-700"/></button>
-                                    </div>
-                                ))}
+                                <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-green-500' : 'bg-light-accent'}`}>
+                                    {victimFeedback ? <><Check size={16}/> Victim Added</> : <><UserPlus size={16}/> Add Victim</>}
+                                </button>
                             </div>
-                        )}
+                            {formData.victims.map((v, i) => (
+                                <div key={i} className="flex items-center justify-between p-2 mt-2 bg-slate-100 dark:bg-slate-700 rounded-md text-sm">
+                                    <span>{v.name} ({v.category})</span>
+                                    <button type="button" onClick={() => removeVictim(i)}><Trash2 size={14} className="text-red-500 hover:text-red-700"/></button>
+                                </div>
+                            ))}
+                        </div>
                         
                         <div className="col-span-2 border-t pt-4 space-y-3">
                             <FormField label="Cause of Incident (Optional)"><textarea name="incidentCause" value={formData.incidentCause} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>

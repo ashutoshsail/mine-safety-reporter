@@ -32,18 +32,94 @@ export const AppProvider = ({ children }) => {
         setLoading(false);
         return; 
     }
-    // ... (rest of useEffect for fetching data remains the same)
+
+    const fetchUserDetails = async () => {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", currentUser.email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0].data();
+            setUser({ name: userDoc.name, userId: userDoc.userId, email: userDoc.email });
+        } else {
+            setUser({ name: currentUser.email, userId: 'N/A', email: currentUser.email });
+        }
+    };
+    fetchUserDetails();
+
+    setLoading(true);
+    const incidentsCollection = collection(db, 'incidents');
+    const qIncidents = query(incidentsCollection, orderBy('createdAt', 'desc'));
+    const unsubscribeIncidents = onSnapshot(qIncidents, (snapshot) => {
+      const incidentsData = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+      setIncidents(incidentsData);
+      setLoading(false);
+    });
+
+    return () => unsubscribeIncidents();
   }, [currentUser]);
 
-  // ... (all data functions like addIncident, addComment, etc. remain the same)
+  const addIncident = async (incidentData) => {
+    const newIncident = {
+      ...incidentData,
+      reporterName: user.name,
+      id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
+      status: 'Open',
+      mandaysLost: incidentData.type === 'Lost Time Injury (LTI)' ? 0 : null,
+      comments: [],
+      history: [{ user: user.name, action: 'Created Report', timestamp: new Date().toISOString() }],
+      createdAt: serverTimestamp(),
+    };
+    const incidentsCollection = collection(db, 'incidents');
+    const docRef = await addDoc(incidentsCollection, newIncident);
+    return { ...newIncident, docId: docRef.id };
+  };
+  
+  const updateIncident = async (docId, updates) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+    const newHistory = [...incidentToUpdate.history, { user: user.name, action: `Updated fields: ${Object.keys(updates).join(', ')}`, timestamp: new Date().toISOString() }];
+    await updateDoc(incidentDoc, { ...updates, history: newHistory });
+  };
+
+  const addComment = async (docId, commentText) => {
+    const incidentDoc = doc(db, 'incidents', docId);
+    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    if (!incidentToUpdate) return;
+    const newComment = { user: user.name, text: commentText, timestamp: new Date().toISOString() };
+    const newComments = [...incidentToUpdate.comments, newComment];
+    const newHistory = [...incidentToUpdate.history, { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
+    await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
+  };
+  
+  const submitNoAccident = async (mineName, date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
+    try {
+        await setDoc(dailySubmissionsDoc, {
+            [mineName]: { status: 'No Accident', submittedAt: new Date().toISOString(), user: user.name }
+        }, { merge: true });
+    } catch (error) {
+        console.error("Error submitting 'No Accident' report: ", error);
+    }
+  };
 
   const value = {
-    // ... (other values)
+    incidents,
+    loading,
+    addIncident,
+    updateIncident,
+    addComment,
+    submitNoAccident,
     user,
     theme,
     toggleTheme,
     navPreference,
     updateNavPreference,
+    MINES,
+    SECTIONS,
+    INCIDENT_TYPES,
+    currentDate: new Date('2025-08-05T10:00:00Z'),
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

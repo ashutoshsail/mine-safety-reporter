@@ -1,7 +1,7 @@
 import { subDays, format } from 'date-fns';
 
 export const MINES = ["DMM", "JMM", "RMM", "DIOM", "Mahamaya", "Kalwar", "Rowghat", "Nandini", "Hirri", "Koteshwar"];
-export const SECTIONS = ["QUARRY", "HEME", "EMM", "CIVIL", "MECHANICAL", "ELECTRICAL", "MSDS", "PLANT", "CRUSHER", "TIPPER GARAGE", "Other"];
+export const SECTIONS = ["Quarry", "HEME", "EMM", "Civil", "Mechanical", "Electrical", "MSDS", "Plant", "Crusher", "Tipper Garage", "Other"];
 export const INCIDENT_TYPES = ['First Aid', 'Reportable', 'Lost Time Injury (LTI)', 'Fatality', 'Near Miss', 'High Potential Incident'];
 
 const reporters = ["Rakesh Sharma", "Sunita Williams", "Kalpana Chawla", "Vikram Sarabhai", "Homi Bhabha"];
@@ -23,7 +23,7 @@ const victimDetails = [
     "Not applicable, equipment failure."
 ];
 
-let incidentCounter = 481; // Start counter for unique IDs
+let incidentCounter = 481;
 
 export const generateIncidentId = (mine, type, date) => {
     const typeAcronyms = {
@@ -55,7 +55,7 @@ const createRandomIncident = (referenceDate, daysAgo) => {
         type: type,
         location: locations[Math.floor(Math.random() * locations.length)],
         description: descriptions[Math.floor(Math.random() * descriptions.length)],
-        victimDetails: victimDetails[Math.floor(Math.random() * victimDetails.length)],
+        victims: [],
         status: Math.random() > 0.3 ? 'Closed' : 'Open',
         mandaysLost: type === 'Lost Time Injury (LTI)' ? Math.floor(Math.random() * 30) : null,
         photos: [],
@@ -76,7 +76,6 @@ export const mockIncidents = Array.from({ length: 250 }, (_, i) =>
     createRandomIncident(fixedReferenceDate, Math.floor(Math.random() * 365))
 ).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-// Ensure at least one LTI for the "Days Since Last LTI" calculation
 const lastLtiIndex = mockIncidents.findIndex(inc => inc.type === 'Lost Time Injury (LTI)');
 if (lastLtiIndex !== -1) {
     mockIncidents[lastLtiIndex].date = format(subDays(fixedReferenceDate, 15), 'yyyy-MM-dd');

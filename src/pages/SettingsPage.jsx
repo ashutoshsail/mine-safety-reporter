@@ -13,30 +13,52 @@ const SettingsPage = () => {
     const { user, theme, toggleTheme, navPreference, updateNavPreference } = useContext(AppContext);
     const { logout } = useContext(AuthContext);
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch (error) {
+            console.error("Failed to log out", error);
+        }
+    };
+
     return (
         <div className="max-w-2xl mx-auto space-y-4">
             <h2 className="text-2xl font-semibold">Settings</h2>
             
-            {/* ... (User Profile section updated to be single-line) ... */}
-            <div className="flex items-center gap-2">
-                <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">Logged in as:</p>
-                <p className="font-semibold">{user.name}</p>
+            <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                <h3 className="text-base font-semibold mb-2">User Profile</h3>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">Logged in as:</p>
+                    <p className="font-semibold">{user.name} ({user.userId})</p>
+                </div>
             </div>
 
-            {/* ... (Appearance and Navigation Preference sections with larger switches) ... */}
-            <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
-                 <h3 className="text-lg font-semibold mb-3">Mobile Navigation Style</h3>
+            <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md space-y-4">
+                <h3 className="text-base font-semibold">Preferences</h3>
                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                        {navPreference === 'fab' ? <MousePointerClick/> : <Smartphone/>}
-                        <span>{navPreference === 'fab' ? 'Floating Button' : 'Bottom Bar'}</span>
-                    </div>
+                    <label className="font-semibold text-sm">Dark Mode</label>
+                    <Switch checked={theme === 'dark'} onChange={toggleTheme} />
+                 </div>
+                 <div className="flex items-center justify-between lg:hidden">
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                        {navPreference === 'fab' ? <MousePointerClick size={16}/> : <Smartphone size={16}/>}
+                        <span>{navPreference === 'fab' ? 'Use Floating Button' : 'Use Bottom Bar'}</span>
+                    </label>
                     <Switch checked={navPreference === 'bottom'} onChange={() => updateNavPreference(navPreference === 'fab' ? 'bottom' : 'fab')} />
                  </div>
             </div>
+            
+            <div className="text-center pt-4">
+                 <button onClick={handleLogout} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors mx-auto text-sm">
+                    <LogOut size={14} />
+                    <span>Logout</span>
+                </button>
+            </div>
 
-            {/* ... (Logout Button and updated credit line) ... */}
-            <p>Made by Ankita and Ashutosh Tripathi for SAIL.</p>
+            <div className="text-center text-xs text-light-subtle-text dark:text-dark-subtle-text pt-6">
+                <p>Mine Safety Reporter v1.0.0</p>
+                <p>Made by Ankita and Ashutosh Tripathi for SAIL.</p>
+            </div>
         </div>
     );
 };

@@ -11,9 +11,15 @@ export const AppProvider = ({ children }) => {
   const { currentUser } = useContext(AuthContext);
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ name: '', userId: '', email: '' });
+  const [user, setUser] = useState({ name: '', userId: '', email: '', isAdmin: false });
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [navPreference, setNavPreference] = useState(localStorage.getItem('navPreference') || 'fab');
+  const [demoMode, setDemoMode] = useState(localStorage.getItem('demoMode') === 'true');
+
+  const setDemoModeAndUpdateStorage = (isDemo) => {
+    setDemoMode(isDemo);
+    localStorage.setItem('demoMode', isDemo);
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -27,6 +33,20 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('navPreference', preference);
   };
 
+  const updateUserLastSelectedMine = (mineName) => {
+    if(currentUser) {
+      localStorage.setItem(`lastMine_${currentUser.uid}`, mineName);
+    }
+  };
+
+  const getUserLastSelectedMine = () => {
+    if(currentUser) {
+      return localStorage.getItem(`lastMine_${currentUser.uid}`) || MINES[0];
+    }
+    return MINES[0];
+  };
+
+
   useEffect(() => {
     if (!currentUser) {
         setLoading(false);
@@ -39,25 +59,55 @@ export const AppProvider = ({ children }) => {
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0].data();
-            setUser({ name: userDoc.name, userId: userDoc.userId, email: userDoc.email });
+            setUser({ 
+              name: userDoc.name, 
+              userId: userDoc.userId, 
+              email: userDoc.email,
+              isAdmin: userDoc.isAdmin || false
+            });
         } else {
-            setUser({ name: currentUser.email, userId: 'N/A', email: currentUser.email });
+            setUser({ name: currentUser.email, userId: 'N/A', email: currentUser.email, isAdmin: false });
         }
     };
     fetchUserDetails();
 
     setLoading(true);
+    // The query now depends on whether demo mode is active
+    let incidentsQuery;
     const incidentsCollection = collection(db, 'incidents');
-    const qIncidents = query(incidentsCollection, orderBy('createdAt', 'desc'));
-    const unsubscribeIncidents = onSnapshot(qIncidents, (snapshot) => {
+    if (demoMode) {
+        // In demo mode, show all incidents
+        incidentsQuery = query(incidentsCollection, orderBy('createdAt', 'desc'));
+    } else {
+        // Outside demo mode, show only real incidents (those without isDemo: true)
+        incidentsQuery = query(incidentsCollection, where("isDemo", "!=", true), orderBy('createdAt', 'desc'));
+    }
+    
+    const unsubscribeIncidents = onSnapshot(incidentsQuery, (snapshot) => {
       const incidentsData = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
       setIncidents(incidentsData);
       setLoading(false);
     });
 
     return () => unsubscribeIncidents();
-  }, [currentUser]);
+  }, [currentUser, demoMode]); // Re-run when demoMode changes
 
+  const submitNoAccident = async (mineName, date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
+    try {
+        await setDoc(dailySubmissionsDoc, {
+            [mineName]: { 
+              status: 'No Accident', 
+              submittedAt: new Date().toISOString(), 
+              submittedBy: user.name
+            }
+        }, { merge: true });
+    } catch (error) {
+        console.error("Error submitting 'No Accident' report: ", error);
+    }
+  };
+  
   const addIncident = async (incidentData) => {
     const newIncident = {
       ...incidentData,
@@ -68,6 +118,7 @@ export const AppProvider = ({ children }) => {
       comments: [],
       history: [{ user: user.name, action: 'Created Report', timestamp: new Date().toISOString() }],
       createdAt: serverTimestamp(),
+      isDemo: false, // Real incidents are never demo incidents
     };
     const incidentsCollection = collection(db, 'incidents');
     const docRef = await addDoc(incidentsCollection, newIncident);
@@ -92,18 +143,6 @@ export const AppProvider = ({ children }) => {
     await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
   };
   
-  const submitNoAccident = async (mineName, date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
-    try {
-        await setDoc(dailySubmissionsDoc, {
-            [mineName]: { status: 'No Accident', submittedAt: new Date().toISOString(), user: user.name }
-        }, { merge: true });
-    } catch (error) {
-        console.error("Error submitting 'No Accident' report: ", error);
-    }
-  };
-
   const value = {
     incidents,
     loading,
@@ -116,6 +155,10 @@ export const AppProvider = ({ children }) => {
     toggleTheme,
     navPreference,
     updateNavPreference,
+    updateUserLastSelectedMine,
+    getUserLastSelectedMine,
+    demoMode,
+    setDemoMode: setDemoModeAndUpdateStorage,
     MINES,
     SECTIONS,
     INCIDENT_TYPES,

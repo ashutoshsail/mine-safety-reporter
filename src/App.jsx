@@ -11,6 +11,7 @@ import IncidentLogPage from './pages/IncidentLogPage';
 import ExecutiveDashboardPage from './pages/ExecutiveDashboardPage';
 import ComparisonPage from './pages/ComparisonPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPanel from './pages/AdminPanel'; // <-- Import the new Admin Panel
 
 const useWindowSize = () => {
     const [width, setWidth] = useState(window.innerWidth);
@@ -30,6 +31,7 @@ const Router = ({ route }) => {
     case 'analytics': return <ExecutiveDashboardPage />;
     case 'comparison': return <ComparisonPage />;
     case 'settings': return <SettingsPage />;
+    case 'admin': return <AdminPanel />; // <-- Add the route for the Admin Panel
     default: return <HomePage />;
   }
 };

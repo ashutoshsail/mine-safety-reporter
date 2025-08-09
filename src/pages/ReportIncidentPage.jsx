@@ -1,19 +1,20 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
-import { ChevronRight, FileText, Download, CheckCircle, Upload, X, UserPlus, Trash2, Check } from 'lucide-react';
+import { ChevronRight, FileText, Download, Edit, CheckCircle, Upload, X, UserPlus, Trash2, Check } from 'lucide-react';
 import IncidentReportPDF from '../components/IncidentReportPDF';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const ReportIncidentPage = () => {
-    const { user, MINES, SECTIONS, INCIDENT_TYPES, addIncident, currentDate } = useContext(AppContext);
+    const { user, MINES, SECTIONS, INCIDENT_TYPES, addIncident, currentDate, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
+    
     const [step, setStep] = useState(1);
     const initialVictimState = { name: '', category: 'Regular', formB: '', contractorName: '', poNumber: '' };
     const [currentVictim, setCurrentVictim] = useState(initialVictimState);
     const [victimFeedback, setVictimFeedback] = useState(false);
     const [formData, setFormData] = useState({
         reporterName: user.name,
-        mine: MINES[0],
+        mine: getUserLastSelectedMine(), // <-- Set default mine here
         sectionName: SECTIONS[0],
         otherSection: '',
         date: new Date(currentDate).toISOString().split('T')[0],
@@ -31,7 +32,15 @@ const ReportIncidentPage = () => {
 
     const isVictimInfoRequired = !['Near Miss', 'High Potential Incident'].includes(formData.type);
 
-    const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // If the mine is changed, save it as the new default
+        if (name === 'mine') {
+            updateUserLastSelectedMine(value);
+        }
+    };
+    
     const handleVictimChange = (e) => setCurrentVictim(prev => ({...prev, [e.target.name]: e.target.value}));
 
     const handleAddVictim = () => {

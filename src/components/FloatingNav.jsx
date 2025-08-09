@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, X, Menu } from 'lucide-react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { AppContext } from '../context/AppContext';
+import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, X, Menu, ShieldCheck } from 'lucide-react';
 
-const navItems = [
+const baseNavItems = [
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'report', icon: FileText, label: 'Report Incident' },
   { id: 'log', icon: List, label: 'Incident Log' },
   { id: 'analytics', icon: BarChart2, label: 'Dashboard' },
   { id: 'comparison', icon: GitCompareArrows, label: 'Comparison' },
-  { id: 'settings', icon: Settings, label: 'Settings' },
 ];
 
 const FloatingNav = ({ setRoute, currentRoute }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useContext(AppContext);
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -28,6 +29,14 @@ const FloatingNav = ({ setRoute, currentRoute }) => {
     setRoute(route);
     setIsOpen(false);
   };
+
+  // Add admin and settings items dynamically
+  const navItems = [...baseNavItems];
+  if (user.isAdmin) {
+    navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin Panel' });
+  }
+  navItems.push({ id: 'settings', icon: Settings, label: 'Settings' });
+
 
   return (
     <>

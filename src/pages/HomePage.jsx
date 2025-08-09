@@ -2,8 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import { format } from 'date-fns';
-import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb, X } from 'lucide-react';
 
 const safetyTips = [
     "Always wear your Personal Protective Equipment (PPE) in designated areas.",
@@ -38,7 +38,7 @@ const safetyTips = [
     "Your safety is your responsibility. Look out for yourself and your team."
 ];
 
-const HomePage = ({ setRoute }) => {
+const HomePage = () => {
     const { incidents, submitNoAccident, MINES, currentDate, user } = useContext(AppContext);
     const [selectedDate, setSelectedDate] = useState(currentDate);
     const [submissionsForDate, setSubmissionsForDate] = useState({});
@@ -47,6 +47,7 @@ const HomePage = ({ setRoute }) => {
     const [submissionMessage, setSubmissionMessage] = useState('');
     const [activeTab, setActiveTab] = useState('no-submission');
     const [dailyTip] = useState(safetyTips[new Date().getDate() % safetyTips.length]);
+    const [modalData, setModalData] = useState(null); // For the pop-up
 
     useEffect(() => {
         const fetchSubmissions = async () => {
@@ -75,7 +76,7 @@ const HomePage = ({ setRoute }) => {
         e.preventDefault();
         await submitNoAccident(selectedMine, selectedDate);
         setSubmissionMessage(`'No Accident' reported for ${selectedMine} on ${format(selectedDate, 'PPP')}.`);
-        setSubmissionsForDate(prev => ({...prev, [selectedMine]: {status: 'No Accident'}}));
+        setSubmissionsForDate(prev => ({...prev, [selectedMine]: {status: 'No Accident', submittedBy: user.name, submittedAt: new Date().toISOString()}}));
         setTimeout(() => setSubmissionMessage(''), 3000);
     };
 
@@ -93,12 +94,8 @@ const HomePage = ({ setRoute }) => {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-semibold leading-tight">Home</h1>
-                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">Hello, <span className="font-semibold">{user.name || 'User'}</span></p>
-                </div>
-            </div>
+            <h1 className="text-2xl font-semibold leading-tight">Home</h1>
+            <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text -mt-2">Hello, <span className="font-semibold">{user.name || 'User'}</span></p>
             
             <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
                 <h2 className="text-base font-semibold mb-2">Daily Submission Status</h2>
@@ -122,7 +119,7 @@ const HomePage = ({ setRoute }) => {
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
                         {activeTab === 'no-submission' && noSubmissionMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><XCircle size={14} className="text-red-500 flex-shrink-0" /><span>{mine}</span></div>)}
-                        {activeTab === 'no-accident' && noAccidentMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><CheckCircle size={14} className="text-green-500 flex-shrink-0" /><span>{mine}</span></div>)}
+                        {activeTab === 'no-accident' && noAccidentMines.map(mine => <div key={mine} onClick={() => setModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-green-500 flex-shrink-0" /><span>{mine}</span></div>)}
                         {activeTab === 'accident' && accidentMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" /><span>{mine}</span></div>)}
                     </div>
                 )}
@@ -156,6 +153,22 @@ const HomePage = ({ setRoute }) => {
                     <Lightbulb className="text-yellow-400 flex-shrink-0" size={32} />
                 </div>
             </div>
+
+            {/* Submission Details Modal */}
+            {modalData && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setModalData(null)}>
+                    <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-sm p-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold">Submission Details</h3>
+                            <button onClick={() => setModalData(null)}><X size={20} /></button>
+                        </div>
+                        <div>
+                            <p className="text-sm"><span className="font-semibold">Submitted By:</span> {modalData.submittedBy}</p>
+                            <p className="text-sm"><span className="font-semibold">Date & Time:</span> {format(parseISO(modalData.submittedAt), 'PPP p')}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

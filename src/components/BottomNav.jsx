@@ -1,15 +1,25 @@
-import React from 'react';
-import { Home, FileText, List, BarChart2, Settings } from 'lucide-react';
+import React, { useContext } from 'react';
+import { AppContext } from '../context/AppContext';
+import { Home, FileText, List, BarChart2, Settings, ShieldCheck } from 'lucide-react';
 
-const navItems = [
+const baseNavItems = [
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'report', icon: FileText, label: 'Report' },
   { id: 'log', icon: List, label: 'Log' },
   { id: 'analytics', icon: BarChart2, label: 'Dashboard' },
-  { id: 'settings', icon: Settings, label: 'Settings' },
 ];
 
 const BottomNav = ({ setRoute, currentRoute }) => {
+  const { user } = useContext(AppContext);
+
+  // Add admin and settings items dynamically
+  const navItems = [...baseNavItems];
+  if (user.isAdmin) {
+    navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
+  }
+  navItems.push({ id: 'settings', icon: Settings, label: 'Settings' });
+
+
   return (
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-light-card dark:bg-dark-card border-t border-slate-200 dark:border-slate-700 flex justify-around items-center z-40 lg:hidden">
       {navItems.map((item) => (

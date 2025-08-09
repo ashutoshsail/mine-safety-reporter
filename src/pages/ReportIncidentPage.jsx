@@ -25,7 +25,7 @@ const ReportIncidentPage = () => {
         otherSection: '',
         date: new Date(currentDate).toISOString().split('T')[0],
         time: new Date(currentDate).toTimeString().slice(0, 5),
-        type: 'First Aid', // Set a safe default initially
+        type: INCIDENT_TYPES.length > 0 ? INCIDENT_TYPES[0] : 'First Aid',
         location: '',
         description: '',
         victims: [],
@@ -35,13 +35,6 @@ const ReportIncidentPage = () => {
     });
     const [newIncident, setNewIncident] = useState(null);
     const pdfRef = useRef();
-
-    // This effect runs once the INCIDENT_TYPES are loaded to set a proper default
-    useEffect(() => {
-        if (INCIDENT_TYPES.length > 0) {
-            setFormData(prev => ({ ...prev, type: INCIDENT_TYPES[0] }));
-        }
-    }, [INCIDENT_TYPES]);
 
     const availableSections = useMemo(() => {
         const selectedMineConfig = minesConfig.find(m => m.name === formData.mine);

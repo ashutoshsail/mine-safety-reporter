@@ -4,7 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { AppProvider } from './context/AppContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
-import { ConfigProvider } from './context/ConfigContext.jsx' // Import the new provider
+import { ConfigProvider } from './context/ConfigContext.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

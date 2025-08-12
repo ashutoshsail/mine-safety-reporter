@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { Home, FileText, List, BarChart2, Settings, ShieldCheck } from 'lucide-react';
 
@@ -9,10 +9,9 @@ const baseNavItems = [
   { id: 'analytics', icon: BarChart2, label: 'Dashboard' },
 ];
 
-const BottomNav = ({ setRoute, currentRoute }) => {
+const BottomNav = memo(({ setRoute, currentRoute }) => {
   const { user } = useContext(AppContext);
 
-  // Add admin and settings items dynamically
   const navItems = [...baseNavItems];
   if (user.isAdmin) {
     navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
@@ -36,6 +35,6 @@ const BottomNav = ({ setRoute, currentRoute }) => {
       ))}
     </div>
   );
-};
+});
 
 export default BottomNav;

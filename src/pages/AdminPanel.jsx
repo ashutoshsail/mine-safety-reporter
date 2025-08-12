@@ -2,10 +2,10 @@ import React, { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
-import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { mockIncidents } from '../utils/mockData';
 import { serverTimestamp } from 'firebase/firestore';
-import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check } from 'lucide-react';
+import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check, Megaphone } from 'lucide-react';
 import AssignSections from '../components/AssignSections';
 
 const ConfigManager = ({ title, collectionName, items }) => {
@@ -46,7 +46,6 @@ const ConfigManager = ({ title, collectionName, items }) => {
                 <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white p-2 rounded-md"><Plus size={20} /></button>
             </form>
             <ul className="space-y-2">
-                {/* Safety check to prevent crash if items is undefined */}
                 {items && items.map(item => (
                     <li key={item.id} className="flex items-center justify-between bg-light-card dark:bg-dark-card p-2 rounded-md text-sm">
                         {editingItem?.id === item.id ? (
@@ -79,6 +78,49 @@ const ConfigManager = ({ title, collectionName, items }) => {
     );
 };
 
+const AdminNoticeManager = () => {
+    const { homePageNotice } = useContext(ConfigContext);
+    const [notice, setNotice] = useState({
+        isActive: homePageNotice?.isActive || false,
+        title: homePageNotice?.title || '',
+        message: homePageNotice?.message || '',
+        imageUrl: homePageNotice?.imageUrl || '',
+    });
+    const [feedback, setFeedback] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setNotice(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleSaveChanges = async () => {
+        const noticeDocRef = doc(db, 'config_general', 'homePageNotice');
+        try {
+            await setDoc(noticeDocRef, notice);
+            setFeedback(true);
+            setTimeout(() => setFeedback(false), 2000);
+        } catch (error) {
+            console.error("Error updating notice: ", error);
+            alert("Failed to save notice.");
+        }
+    };
+
+    return (
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg space-y-3">
+            <h3 className="font-semibold flex items-center gap-2"><Megaphone size={18}/> Home Page Notice</h3>
+            <div className="flex items-center justify-between">
+                <label htmlFor="isActive" className="font-semibold text-sm">Activate Notice</label>
+                <input type="checkbox" id="isActive" name="isActive" checked={notice.isActive} onChange={handleInputChange} className="h-5 w-5 rounded text-light-accent focus:ring-light-accent" />
+            </div>
+            <input name="title" value={notice.title} onChange={handleInputChange} placeholder="Notice Title" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
+            <textarea name="message" value={notice.message} onChange={handleInputChange} placeholder="Notice Message..." rows="3" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600"></textarea>
+            <input name="imageUrl" value={notice.imageUrl} onChange={handleInputChange} placeholder="Image URL (optional)" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
+            <button onClick={handleSaveChanges} className="w-full flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-4 py-2 rounded-md text-sm">
+                {feedback ? <><Check size={16}/> Saved!</> : 'Save Notice'}
+            </button>
+        </div>
+    );
+};
 
 const AdminPanel = () => {
     const { demoMode, setDemoMode } = useContext(AppContext);
@@ -147,6 +189,9 @@ const AdminPanel = () => {
                     <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig} />
                     <div className="md:col-span-2 lg:col-span-3">
                         <AssignSections />
+                    </div>
+                     <div className="md:col-span-2 lg:col-span-3">
+                        <AdminNoticeManager />
                     </div>
                 </div>
             </div>

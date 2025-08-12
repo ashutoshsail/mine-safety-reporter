@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react'; // Import useCallback
 import { AppContext } from './context/AppContext';
 import { AuthContext } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
@@ -11,7 +11,7 @@ import IncidentLogPage from './pages/IncidentLogPage';
 import ExecutiveDashboardPage from './pages/ExecutiveDashboardPage';
 import ComparisonPage from './pages/ComparisonPage';
 import SettingsPage from './pages/SettingsPage';
-import AdminPanel from './pages/AdminPanel'; // <-- Import the new Admin Panel
+import AdminPanel from './pages/AdminPanel';
 
 const useWindowSize = () => {
     const [width, setWidth] = useState(window.innerWidth);
@@ -31,7 +31,7 @@ const Router = ({ route }) => {
     case 'analytics': return <ExecutiveDashboardPage />;
     case 'comparison': return <ComparisonPage />;
     case 'settings': return <SettingsPage />;
-    case 'admin': return <AdminPanel />; // <-- Add the route for the Admin Panel
+    case 'admin': return <AdminPanel />;
     default: return <HomePage />;
   }
 };
@@ -42,6 +42,11 @@ function App() {
   const { currentUser } = useContext(AuthContext);
   const width = useWindowSize();
   const isLargeScreen = width >= 1024;
+
+  // CRITICAL FIX: Memoize the setRoute function so it doesn't cause re-renders
+  const handleSetRoute = useCallback((newRoute) => {
+    setRoute(newRoute);
+  }, []);
 
   React.useEffect(() => {
     const root = window.document.documentElement;
@@ -55,13 +60,13 @@ function App() {
 
   return (
     <div className={`min-h-screen font-light text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background`}>
-      <Sidebar setRoute={setRoute} currentRoute={route} />
+      <Sidebar setRoute={handleSetRoute} currentRoute={route} />
       
       {!isLargeScreen && (
         navPreference === 'fab' ? (
-          <FloatingNav setRoute={setRoute} currentRoute={route} />
+          <FloatingNav setRoute={handleSetRoute} currentRoute={route} />
         ) : (
-          <BottomNav setRoute={setRoute} currentRoute={route} />
+          <BottomNav setRoute={handleSetRoute} currentRoute={route} />
         )
       )}
 

@@ -1,5 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
+import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { ChevronLeft, ChevronRight, Filter, X as XIcon, Smile, Search } from 'lucide-react';
 import { subMonths, startOfMonth, endOfMonth, format, eachMonthOfInterval } from 'date-fns';
@@ -7,19 +8,19 @@ import { subMonths, startOfMonth, endOfMonth, format, eachMonthOfInterval } from
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const useWindowSize = () => {
-    const [size, setSize] = useState([window.innerWidth, window.innerHeight]);
+    const [width, setWidth] = useState(window.innerWidth);
     React.useLayoutEffect(() => {
-        const handleResize = () => setSize([window.innerWidth, window.innerHeight]);
+        const handleResize = () => setWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
-    return size;
+    return width;
 };
 
-
 const ExecutiveDashboardPage = () => {
-    const { incidents, MINES, INCIDENT_TYPES, currentDate } = useContext(AppContext);
-    const [width] = useWindowSize();
+    const { incidents } = useContext(AppContext);
+    const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
+    const width = useWindowSize();
     const isSmallScreen = width < 768;
 
     const [period, setPeriod] = useState('Last 3 Months');
@@ -31,8 +32,8 @@ const ExecutiveDashboardPage = () => {
     const periodOptions = ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'];
 
     const filteredIncidents = useMemo(() => {
-        let dateFrom = new Date(currentDate);
-        if (period === 'Last 30 Days') dateFrom.setDate(dateFrom.getDate() - 30);
+        let dateFrom = new Date();
+        if (period === 'Last 30 Days') dateFrom = subMonths(dateFrom, 1);
         if (period === 'Last 3 Months') dateFrom = subMonths(dateFrom, 3);
         if (period === 'Last 6 Months') dateFrom = subMonths(dateFrom, 6);
         if (period === 'Last 12 Months') dateFrom = subMonths(dateFrom, 12);
@@ -40,11 +41,10 @@ const ExecutiveDashboardPage = () => {
         return incidents.filter(inc => {
             const incDate = new Date(inc.date);
             return incDate >= dateFrom &&
-                   incDate <= currentDate &&
                    selectedMines.includes(inc.mine) &&
                    selectedTypes.includes(inc.type);
         });
-    }, [incidents, period, selectedMines, selectedTypes, currentDate]);
+    }, [incidents, period, selectedMines, selectedTypes]);
     
     const individualMineData = useMemo(() => {
         const mine = selectedMines[pieChartMineIndex];
@@ -63,16 +63,16 @@ const ExecutiveDashboardPage = () => {
             totalIncidents,
             hasNearMiss
         };
-    }, [filteredIncidents, pieChartMineIndex, selectedMines]);
+    }, [filteredIncidents, pieChartMineIndex, selectedMines, INCIDENT_TYPES]);
 
     const minePerformanceData = useMemo(() => MINES.map(mine => ({ name: mine, Incidents: filteredIncidents.filter(inc => inc.mine === mine).length })), [filteredIncidents, MINES]);
     const monthlyTrendData = useMemo(() => {
-        let startDate = new Date(currentDate);
-        if (period === 'Last 30 Days') startDate.setDate(startDate.getDate() - 30);
+        let startDate = new Date();
+        if (period === 'Last 30 Days') startDate = subMonths(startDate, 1);
         if (period === 'Last 3 Months') startDate = subMonths(startDate, 3);
         if (period === 'Last 6 Months') startDate = subMonths(startDate, 6);
         if (period === 'Last 12 Months') startDate = subMonths(startDate, 12);
-        const months = eachMonthOfInterval({ start: startOfMonth(startDate), end: endOfMonth(currentDate) });
+        const months = eachMonthOfInterval({ start: startOfMonth(startDate), end: new Date() });
         return months.map(month => {
             const monthStr = format(month, 'MMM yyyy');
             const monthIncidents = filteredIncidents.filter(inc => format(new Date(inc.date), 'MMM yyyy') === monthStr);
@@ -80,7 +80,7 @@ const ExecutiveDashboardPage = () => {
             INCIDENT_TYPES.forEach(type => { typesCount[type] = monthIncidents.filter(inc => inc.type === type).length; });
             return { name: format(month, 'MMM'), ...typesCount };
         });
-    }, [filteredIncidents, period, currentDate, INCIDENT_TYPES]);
+    }, [filteredIncidents, period, INCIDENT_TYPES]);
     const hotspotData = useMemo(() => {
         const sectionCounts = {};
         filteredIncidents.forEach(inc => { sectionCounts[inc.sectionName] = (sectionCounts[inc.sectionName] || 0) + 1; });

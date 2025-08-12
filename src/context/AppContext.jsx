@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, setDoc, where, getDocs } from 'firebase/firestore';
 import { generateIncidentId } from '../utils/mockData';
@@ -52,7 +52,7 @@ export const AppProvider = ({ children }) => {
         setLoading(false);
         return; 
     }
-
+    
     const fetchUserDetails = async () => {
         const usersRef = collection(db, "users");
         const q = query(usersRef, where("email", "==", currentUser.email));
@@ -127,13 +127,12 @@ export const AppProvider = ({ children }) => {
     }, { merge: true });
   };
 
-  const value = {
+  const value = useMemo(() => ({
     incidents, loading, addIncident, updateIncident, addComment, submitNoAccident,
     user, theme, toggleTheme, navPreference, updateNavPreference,
     updateUserLastSelectedMine, getUserLastSelectedMine,
     demoMode, setDemoMode: setDemoModeAndUpdateStorage,
-    currentDate: new Date('2025-08-05T10:00:00Z'),
-  };
+  }), [incidents, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

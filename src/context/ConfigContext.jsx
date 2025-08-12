@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, onSnapshot, query, orderBy, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, getDocs } from 'firebase/firestore';
 
 export const ConfigContext = createContext();
 
@@ -13,49 +13,47 @@ export const ConfigProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const collections = [
-            { setter: setMinesConfig, name: 'config_mines' },
-            { setter: setSectionsConfig, name: 'config_sections' },
-            { setter: setIncidentTypesConfig, name: 'config_incident_types' },
+        const collectionsToFetch = [
+            { name: 'config_mines', setter: setMinesConfig },
+            { name: 'config_sections', setter: setSectionsConfig },
+            { name: 'config_incident_types', setter: setIncidentTypesConfig },
         ];
 
-        const unsubs = collections.map(({ setter, name }) => {
-            return onSnapshot(query(collection(db, name), orderBy('name')),
-                (snapshot) => {
-                    setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                },
-                (err) => {
-                    console.error(`Error fetching ${name}:`, err);
-                    setError(`Failed to load configuration: ${name}. Please check Firestore rules and indexes.`);
-                }
-            );
+        // 1. Perform an initial, one-time fetch to guarantee data is available.
+        Promise.all(
+            collectionsToFetch.map(c => getDocs(query(collection(db, c.name))))
+        ).then(snapshots => {
+            // 2. Use the results of the fetch to set the initial state.
+            snapshots.forEach((snapshot, index) => {
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                collectionsToFetch[index].setter(data);
+            });
+            // 3. ONLY NOW, after the data is loaded and set, remove the loading screen.
+            setLoading(false);
+        }).catch(err => {
+            console.error("Critical config load failed:", err);
+            setError("Failed to load essential application data. Please check your Firestore rules and collection names.");
+            setLoading(false);
         });
 
+        // 4. ALSO, set up snapshot listeners for real-time updates.
+        const unsubs = collectionsToFetch.map(({ setter, name }) => {
+            return onSnapshot(query(collection(db, name), orderBy('name')), snapshot => {
+                setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            });
+        });
+        
         const noticeDocRef = doc(db, 'config_general', 'homePageNotice');
         const unsubNotice = onSnapshot(noticeDocRef, (doc) => {
             setHomePageNotice(doc.exists() ? doc.data() : null);
         });
-        
-        // This check is more robust. It waits for all three configs to have at least one item,
-        // or times out if the collections are empty or there's an issue.
-        const timer = setTimeout(() => {
-            if (loading) {
-                 setLoading(false); // Stop loading even if collections are empty.
-            }
-        }, 5000); // 5 seconds should be enough
 
         return () => {
             unsubs.forEach(unsub => unsub());
             unsubNotice();
-            clearTimeout(timer);
         };
-    }, [loading]); // Rerun effect if loading state changes
+    }, []);
 
-    useEffect(() => {
-        if (minesConfig.length > 0 && sectionsConfig.length > 0 && incidentTypesConfig.length > 0) {
-            setLoading(false);
-        }
-    }, [minesConfig, sectionsConfig, incidentTypesConfig]);
 
     if (loading) {
         return (

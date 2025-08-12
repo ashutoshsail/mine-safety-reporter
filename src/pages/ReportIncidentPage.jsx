@@ -7,7 +7,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const ReportIncidentPage = () => {
-    const { user, addIncident, currentDate, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
+    const { user, addIncident, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
     const { minesConfig, sectionsConfig, INCIDENT_TYPES } = useContext(ConfigContext);
     
     const [step, setStep] = useState(1);
@@ -23,8 +23,8 @@ const ReportIncidentPage = () => {
         mine: lastSelectedMine || (activeMines.length > 0 ? activeMines[0].name : ''),
         sectionName: '',
         otherSection: '',
-        date: new Date(currentDate).toISOString().split('T')[0],
-        time: new Date(currentDate).toTimeString().slice(0, 5),
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().slice(0, 5),
         type: INCIDENT_TYPES.length > 0 ? INCIDENT_TYPES[0] : 'First Aid',
         location: '',
         description: '',

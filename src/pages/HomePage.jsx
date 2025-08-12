@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
+import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb, X, ShieldCheck } from 'lucide-react';
 
 const safetyTips = [
     "Always wear your Personal Protective Equipment (PPE) in designated areas.",
@@ -39,15 +40,23 @@ const safetyTips = [
 ];
 
 const HomePage = () => {
-    const { incidents, submitNoAccident, MINES, currentDate, user } = useContext(AppContext);
-    const [selectedDate, setSelectedDate] = useState(currentDate);
+    const { incidents, submitNoAccident, user } = useContext(AppContext);
+    const { MINES, homePageNotice } = useContext(ConfigContext);
+    
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const [submissionsForDate, setSubmissionsForDate] = useState({});
     const [loadingSubmissions, setLoadingSubmissions] = useState(false);
-    const [selectedMine, setSelectedMine] = useState(MINES[0]);
+    const [selectedMine, setSelectedMine] = useState('');
     const [submissionMessage, setSubmissionMessage] = useState('');
     const [activeTab, setActiveTab] = useState('no-submission');
     const [dailyTip] = useState(safetyTips[new Date().getDate() % safetyTips.length]);
-    const [modalData, setModalData] = useState(null); // For the pop-up
+    const [modalData, setModalData] = useState(null);
+
+    useEffect(() => {
+        if (MINES && MINES.length > 0 && !selectedMine) {
+            setSelectedMine(MINES[0]);
+        }
+    }, [MINES, selectedMine]);
 
     useEffect(() => {
         const fetchSubmissions = async () => {
@@ -74,6 +83,10 @@ const HomePage = () => {
 
     const handleNoAccidentSubmit = async (e) => {
         e.preventDefault();
+        if (!selectedMine) {
+            alert("Please select a mine.");
+            return;
+        }
         await submitNoAccident(selectedMine, selectedDate);
         setSubmissionMessage(`'No Accident' reported for ${selectedMine} on ${format(selectedDate, 'PPP')}.`);
         setSubmissionsForDate(prev => ({...prev, [selectedMine]: {status: 'No Accident', submittedBy: user.name, submittedAt: new Date().toISOString()}}));
@@ -97,6 +110,14 @@ const HomePage = () => {
             <h1 className="text-2xl font-semibold leading-tight">Home</h1>
             <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text -mt-2">Hello, <span className="font-semibold">{user.name || 'User'}</span></p>
             
+            {homePageNotice && homePageNotice.isActive && (
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md border-l-4 border-light-accent">
+                    <h2 className="font-bold text-lg mb-1">{homePageNotice.title}</h2>
+                    {homePageNotice.imageUrl && <img src={homePageNotice.imageUrl} alt={homePageNotice.title} className="w-full h-auto max-h-48 object-cover rounded-md my-2" />}
+                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{homePageNotice.message}</p>
+                </div>
+            )}
+
             <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
                 <h2 className="text-base font-semibold mb-2">Daily Submission Status</h2>
                 <div className="mb-3">
@@ -154,7 +175,6 @@ const HomePage = () => {
                 </div>
             </div>
 
-            {/* Submission Details Modal */}
             {modalData && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setModalData(null)}>
                     <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-sm p-4" onClick={(e) => e.stopPropagation()}>

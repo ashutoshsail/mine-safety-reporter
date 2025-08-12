@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, memo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, X, Menu, ShieldCheck } from 'lucide-react';
 
@@ -10,12 +10,14 @@ const baseNavItems = [
   { id: 'comparison', icon: GitCompareArrows, label: 'Comparison' },
 ];
 
-const FloatingNav = ({ setRoute, currentRoute }) => {
+const FloatingNav = memo(({ setRoute, currentRoute }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useContext(AppContext);
   const navRef = useRef(null);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     function handleClickOutside(event) {
       if (navRef.current && !navRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -23,14 +25,13 @@ const FloatingNav = ({ setRoute, currentRoute }) => {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [navRef]);
+  }, [isOpen]);
 
   const handleNavClick = (route) => {
     setRoute(route);
     setIsOpen(false);
   };
 
-  // Add admin and settings items dynamically
   const navItems = [...baseNavItems];
   if (user.isAdmin) {
     navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin Panel' });
@@ -67,6 +68,6 @@ const FloatingNav = ({ setRoute, currentRoute }) => {
       </div>
     </>
   );
-};
+});
 
 export default FloatingNav;

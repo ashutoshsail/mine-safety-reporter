@@ -3,7 +3,12 @@ import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowDownRight, ArrowUpRight, Minus, AlertTriangle, Shield, HeartPulse, Skull, X } from 'lucide-react';
-import { subDays, subMonths, startOfDay, endOfDay } from 'date-fns';
+import { subDays, subMonths, startOfDay, endOfDay, format } from 'date-fns';
+import resolveConfig from 'tailwindcss/resolveConfig';
+import tailwindConfig from '../../tailwind.config.js';
+
+const fullConfig = resolveConfig(tailwindConfig);
+const chartColors = fullConfig.theme.colors.chart;
 
 const kpiIcons = {
     'Total Incidents': AlertTriangle,
@@ -44,7 +49,7 @@ const ComparisonPage = () => {
     const incidentsA = useMemo(() => {
         const { start, end } = getDateRange(periodA);
         if (!start || !end) return [];
-        return incidents.filter(inc => {
+        return (incidents || []).filter(inc => {
             const incDate = new Date(inc.date);
             return incDate >= start && incDate <= end;
         });
@@ -53,7 +58,7 @@ const ComparisonPage = () => {
     const incidentsB = useMemo(() => {
         const { start, end } = getDateRange(periodB);
         if (!start || !end) return [];
-        return incidents.filter(inc => {
+        return (incidents || []).filter(inc => {
             const incDate = new Date(inc.date);
             return incDate >= start && incDate <= end;
         });
@@ -75,9 +80,9 @@ const ComparisonPage = () => {
     }, [incidentsA, incidentsB, INCIDENT_TYPES]);
     
     const chartData = useMemo(() => {
-        return MINES.map(mine => {
+        return (MINES || []).map(mine => {
             const data = { mine };
-            INCIDENT_TYPES.forEach(type => {
+            (INCIDENT_TYPES || []).forEach(type => {
                 data[`A_${type}`] = incidentsA.filter(i => i.mine === mine && i.type === type).length;
                 data[`B_${type}`] = incidentsB.filter(i => i.mine === mine && i.type === type).length;
             });
@@ -102,7 +107,7 @@ const ComparisonPage = () => {
             <select
                 value={period.type}
                 onChange={(e) => handlePeriodChange(setPeriod, 'type', e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm"
+                className="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border text-sm"
             >
                 {periodOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
@@ -112,13 +117,13 @@ const ComparisonPage = () => {
                         type="date"
                         value={period.start}
                         onChange={(e) => handlePeriodChange(setPeriod, 'start', e.target.value)}
-                        className="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm"
+                        className="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border text-sm"
                     />
                     <input
                         type="date"
                         value={period.end}
                         onChange={(e) => handlePeriodChange(setPeriod, 'end', e.target.value)}
-                        className="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm"
+                        className="w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border text-sm"
                     />
                 </div>
             )}
@@ -127,8 +132,6 @@ const ComparisonPage = () => {
 
     return (
         <div className="space-y-4">
-            <h1 className="text-2xl sm:text-3xl font-semibold">Period Comparison</h1>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <PeriodSelector label="Period A" period={periodA} setPeriod={setPeriodA} />
                 <PeriodSelector label="Period B (for comparison)" period={periodB} setPeriod={setPeriodB} />
@@ -143,8 +146,8 @@ const ComparisonPage = () => {
                                 <h4 className="font-semibold text-sm text-light-subtle-text dark:text-dark-subtle-text">{kpi.name}</h4>
                                 <Icon size={16} className="text-light-subtle-text dark:text-dark-subtle-text" />
                             </div>
-                            <p className="text-2xl font-bold my-1">{kpi.countA}</p>
-                            <div className={`flex items-center text-xs ${kpi.changeType === 'increase' ? 'text-red-500' : kpi.changeType === 'decrease' ? 'text-green-500' : 'text-slate-500'}`}>
+                            <p className="text-2xl font-semibold my-1">{kpi.countA}</p>
+                            <div className={`flex items-center text-xs ${kpi.changeType === 'increase' ? 'text-light-status-danger' : kpi.changeType === 'decrease' ? 'text-light-status-success' : 'text-slate-500'}`}>
                                 {kpi.changeType === 'increase' && <ArrowUpRight size={14} />}
                                 {kpi.changeType === 'decrease' && <ArrowDownRight size={14} />}
                                 {kpi.changeType === 'same' && <Minus size={14} />}
@@ -163,13 +166,13 @@ const ComparisonPage = () => {
                         <XAxis dataKey="mine" fontSize={10} />
                         <YAxis fontSize={10} />
                         <Tooltip />
-                        <Legend wrapperStyle={{fontSize: "10px"}} />
-                        <Bar dataKey="A_Lost Time Injury (LTI)" stackId="a" fill="#d0021b" name="Period A - LTI" />
-                        <Bar dataKey="A_First Aid" stackId="a" fill="#f5a623" name="Period A - First Aid" />
+                        <Legend wrapperStyle={{fontSize: "10px"}}/>
+                        <Bar dataKey="A_Lost Time Injury (LTI)" stackId="a" fill={chartColors.red} name="Period A - LTI" />
+                        <Bar dataKey="A_First Aid" stackId="a" fill={chartColors.yellow} name="Period A - First Aid" />
                         <Bar dataKey="A_Fatality" stackId="a" fill="#000000" name="Period A - Fatality" />
-                        <Bar dataKey="B_Lost Time Injury (LTI)" stackId="b" fill="#7ed321" name="Period B - LTI" />
-                        <Bar dataKey="B_First Aid" stackId="b" fill="#4a90e2" name="Period B - First Aid" />
-                        <Bar dataKey="B_Fatality" stackId="b" fill="#50e3c2" name="Period B - Fatality" />
+                        <Bar dataKey="B_Lost Time Injury (LTI)" stackId="b" fill={chartColors.green} name="Period B - LTI" />
+                        <Bar dataKey="B_First Aid" stackId="b" fill={chartColors.blue} name="Period B - First Aid" />
+                        <Bar dataKey="B_Fatality" stackId="b" fill={chartColors.purple} name="Period B - Fatality" />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -177,7 +180,7 @@ const ComparisonPage = () => {
             {modalData.isOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-600 flex justify-between items-center">
+                        <div className="p-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
                             <h3 className="text-lg font-semibold">{modalData.title}</h3>
                             <button onClick={() => setModalData({ isOpen: false, title: '', periodA: [], periodB: [] })}><X size={20}/></button>
                         </div>

@@ -42,7 +42,7 @@ const ConfigManager = ({ title, collectionName, items }) => {
                     value={newItem.name}
                     onChange={(e) => setNewItem({ name: e.target.value })}
                     placeholder={`New ${title.slice(0, -1)} Name...`}
-                    className="flex-grow bg-light-card dark:bg-dark-card p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm"
+                    className="flex-grow bg-light-card dark:bg-dark-card p-2 rounded-md border border-light-border dark:border-dark-border text-sm"
                 />
                 <button type="submit" className="bg-light-secondary hover:bg-light-secondary/90 text-white p-2 rounded-md"><Plus size={20} /></button>
             </form>
@@ -62,14 +62,14 @@ const ConfigManager = ({ title, collectionName, items }) => {
                         <div className="flex items-center gap-2">
                             {editingItem?.id === item.id ? (
                                 <>
-                                    <button onClick={handleUpdateItem}><Check size={18} className="text-green-500" /></button>
-                                    <button onClick={() => setEditingItem(null)}><X size={18} className="text-red-500" /></button>
+                                    <button onClick={handleUpdateItem}><Check size={18} className="text-light-status-success" /></button>
+                                    <button onClick={() => setEditingItem(null)}><X size={18} className="text-light-status-danger" /></button>
                                 </>
                             ) : (
-                                <button onClick={() => setEditingItem(item)}><Edit size={16} className="text-slate-500" /></button>
+                                <button onClick={() => setEditingItem(item)}><Edit size={16} className="text-light-subtle-text" /></button>
                             )}
                             <button onClick={() => handleToggleActive(item)}>
-                                {item.isActive ? <ToggleRight size={24} className="text-green-500" /> : <ToggleLeft size={24} className="text-slate-400" />}
+                                {item.isActive ? <ToggleRight size={24} className="text-light-status-success" /> : <ToggleLeft size={24} className="text-slate-400" />}
                             </button>
                         </div>
                     </li>
@@ -110,7 +110,7 @@ const LogoManager = () => {
                 value={logoUrl} 
                 onChange={(e) => setLogoUrl(e.target.value)} 
                 placeholder="Paste image URL here..." 
-                className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" 
+                className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border" 
             />
             <button onClick={handleSaveChanges} className="w-full flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-4 py-2 rounded-md text-sm">
                 {feedback ? <><Check size={16}/> Saved!</> : 'Save Logo'}
@@ -160,9 +160,9 @@ const AdminNoticeManager = () => {
                 <label htmlFor="isActive" className="font-semibold text-sm">Activate Notice</label>
                 <input type="checkbox" id="isActive" name="isActive" checked={notice.isActive} onChange={handleInputChange} className="h-5 w-5 rounded text-light-primary focus:ring-light-primary" />
             </div>
-            <input name="title" value={notice.title} onChange={handleInputChange} placeholder="Notice Title" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
-            <textarea name="message" value={notice.message} onChange={handleInputChange} placeholder="Notice Message..." rows="3" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600"></textarea>
-            <input name="imageUrl" value={notice.imageUrl} onChange={handleInputChange} placeholder="Image URL (optional)" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
+            <input name="title" value={notice.title} onChange={handleInputChange} placeholder="Notice Title" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border" />
+            <textarea name="message" value={notice.message} onChange={handleInputChange} placeholder="Notice Message..." rows="3" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border"></textarea>
+            <input name="imageUrl" value={notice.imageUrl} onChange={handleInputChange} placeholder="Image URL (optional)" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border" />
             <button onClick={handleSaveChanges} className="w-full flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-4 py-2 rounded-md text-sm">
                 {feedback ? <><Check size={16}/> Saved!</> : 'Save Notice'}
             </button>
@@ -223,12 +223,7 @@ const AdminPanel = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-4">
-            <div className="flex items-center gap-2">
-                <ShieldCheck size={24} className="text-light-primary" />
-                <h1 className="text-2xl font-semibold">Admin Panel</h1>
-            </div>
-
+        <div className="space-y-4">
             <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-3">Manage Configuration</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -254,15 +249,15 @@ const AdminPanel = () => {
                         Populate the app with mock data for demonstration purposes. This data is tagged and can be cleared at any time.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <button onClick={handleLoadDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
+                        <button onClick={handleLoadDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-light-secondary text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
                             <DatabaseZap size={16} /><span>Load Demo Data</span>
                         </button>
-                        <button onClick={handleClearDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
+                        <button onClick={handleClearDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-light-status-danger text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">
                             <Trash2 size={16} /><span>Clear Demo Data</span>
                         </button>
                     </div>
                     {loading && <p className="text-sm animate-pulse">{message}</p>}
-                    {!loading && message && <p className="text-sm font-semibold text-green-600 dark:text-green-400">{message}</p>}
+                    {!loading && message && <p className="text-sm font-semibold text-light-status-success">{message}</p>}
                 </div>
             </div>
         </div>

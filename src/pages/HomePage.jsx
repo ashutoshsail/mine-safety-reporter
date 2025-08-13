@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
 import { AppContext, ACCIDENT_TYPES } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
@@ -54,6 +54,13 @@ const HomePage = () => {
     const [submissionModalData, setSubmissionModalData] = useState(null);
     const [accidentModalData, setAccidentModalData] = useState({ isOpen: false, mine: '', incidents: [] });
     const [previewIncident, setPreviewIncident] = useState(null);
+    
+    const tabRefs = {
+        'no-submission': useRef(null),
+        'accident': useRef(null),
+        'no-accident': useRef(null),
+    };
+    const [sliderStyle, setSliderStyle] = useState({});
 
     useEffect(() => {
         if (MINES && MINES.length > 0 && !selectedMine) {
@@ -72,6 +79,16 @@ const HomePage = () => {
         };
         fetchSubmissions();
     }, [selectedDate, incidents]);
+
+    useEffect(() => {
+        const activeTabRef = tabRefs[activeTab].current;
+        if (activeTabRef) {
+            setSliderStyle({
+                left: `${activeTabRef.offsetLeft}px`,
+                width: `${activeTabRef.offsetWidth}px`,
+            });
+        }
+    }, [activeTab, tabRefs]);
 
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     
@@ -112,32 +129,10 @@ const HomePage = () => {
         setAccidentModalData({ isOpen: true, mine: mineName, incidents: dailyIncidents });
     };
 
-    const TabButton = ({ tabName, label, count, colorClasses, position }) => {
-        const posClass = {
-            left: 'rounded-l-full',
-            right: 'rounded-r-full',
-            center: ''
-        }[position];
-
-        return (
-            <button 
-                onClick={() => setActiveTab(tabName)} 
-                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold transition-colors border-y ${posClass} ${
-                    activeTab === tabName 
-                    ? `${colorClasses.activeBg} text-white border-transparent` 
-                    : `bg-light-card dark:bg-dark-card ${colorClasses.border} ${colorClasses.text} hover:bg-slate-100 dark:hover:bg-slate-700`
-                }`}
-            >
-                <span>{label}</span>
-                <span className={`flex items-center justify-center w-5 h-5 text-xs rounded-full ${
-                    activeTab === tabName 
-                    ? 'bg-white/30 text-white' 
-                    : 'bg-slate-200 dark:bg-slate-700 text-light-text dark:text-dark-text'
-                }`}>
-                    {count}
-                </span>
-            </button>
-        );
+    const tabData = {
+        'no-submission': { count: noSubmissionMines.length, color: 'bg-light-status-danger' },
+        'accident': { count: accidentMines.length, color: 'bg-light-status-warning' },
+        'no-accident': { count: noAccidentMines.length, color: 'bg-light-status-success' },
     };
 
     return (
@@ -164,17 +159,21 @@ const HomePage = () => {
                         className="bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border w-full"
                     />
                 </div>
-                <div className="mb-3 flex flex-wrap justify-center gap-y-2 px-2">
-                    <div className="flex w-auto">
-                        <TabButton tabName="no-submission" label="No Report" count={noSubmissionMines.length} colorClasses={{border: 'border-light-status-danger', text: 'text-light-status-danger', activeBg: 'bg-light-status-danger'}} position="left" />
-                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} colorClasses={{border: 'border-light-status-warning', text: 'text-light-status-warning', activeBg: 'bg-light-status-warning'}} position="center" />
-                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} colorClasses={{border: 'border-light-status-success', text: 'text-light-status-success', activeBg: 'bg-light-status-success'}} position="right" />
-                    </div>
+                
+                <div className="relative flex w-full bg-slate-200 dark:bg-slate-700 rounded-full p-1">
+                    <div 
+                        className={`absolute top-1 bottom-1 rounded-full transition-all duration-300 ease-in-out ${tabData[activeTab].color}`}
+                        style={sliderStyle}
+                    ></div>
+                    <button ref={tabRefs['no-submission']} onClick={() => setActiveTab('no-submission')} className={`flex-1 relative z-10 py-1 px-2 text-xs font-bold transition-colors ${activeTab === 'no-submission' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>No Report ({noSubmissionMines.length})</button>
+                    <button ref={tabRefs['accident']} onClick={() => setActiveTab('accident')} className={`flex-1 relative z-10 py-1 px-2 text-xs font-bold transition-colors ${activeTab === 'accident' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Accident ({accidentMines.length})</button>
+                    <button ref={tabRefs['no-accident']} onClick={() => setActiveTab('no-accident')} className={`flex-1 relative z-10 py-1 px-2 text-xs font-bold transition-colors ${activeTab === 'no-accident' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>No Accident ({noAccidentMines.length})</button>
                 </div>
+
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1 mt-3">
                         {activeTab === 'no-submission' && noSubmissionMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><XCircle size={14} className="text-light-status-danger" /><span>{mine}</span></div>)}
-                        {activeTab === 'no-accident' && noSubmissionMines.map(mine => <div key={mine} onClick={() => setSubmissionModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-light-status-success" /><span>{mine}</span></div>)}
+                        {activeTab === 'no-accident' && noAccidentMines.map(mine => <div key={mine} onClick={() => setSubmissionModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-light-status-success" /><span>{mine}</span></div>)}
                         {activeTab === 'accident' && accidentMines.map(mine => <div key={mine} onClick={() => handleAccidentMineClick(mine)} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><AlertTriangle size={14} className="text-light-status-warning" /><span>{mine}</span></div>)}
                     </div>
                 )}

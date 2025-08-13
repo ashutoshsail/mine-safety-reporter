@@ -53,7 +53,7 @@ const IncidentCard = ({ incident }) => {
         <div className={`bg-light-card dark:bg-dark-card rounded-lg shadow-md border-l-4 ${mineColors[incident.mine] || 'border-slate-500'}`}>
             <div className="p-4 flex items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className="flex-grow">
-                    <p className="font-semibold">{incident.type}</p>
+                    <p className="font-semibold text-light-text dark:text-dark-text">{incident.type}</p>
                     <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{incident.id}</p>
                 </div>
                 <div className="hidden lg:block w-96 mx-4 flex-shrink-0">
@@ -61,15 +61,15 @@ const IncidentCard = ({ incident }) => {
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                     <div className="w-20 text-center">
-                        <span className={`text-xs px-2 py-1 rounded-full ${incident.status === 'Open' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'}`}>{incident.status}</span>
+                        <span className={`text-xs px-2 py-1 rounded-full bg-light-status-${incident.status === 'Open' ? 'danger' : 'success'}/10 text-light-status-${incident.status === 'Open' ? 'danger' : 'success'}`}>{incident.status}</span>
                     </div>
-                    <span className="text-sm hidden sm:block w-28 text-right">{format(new Date(incident.date), 'PPP')}</span>
-                    <ChevronDown size={20} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    <span className="text-sm hidden sm:block w-28 text-right text-light-subtle-text dark:text-dark-subtle-text">{format(new Date(incident.date), 'PPP')}</span>
+                    <ChevronDown size={20} className={`transition-transform text-light-subtle-text dark:text-dark-subtle-text ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
             </div>
 
             {isExpanded && (
-                <div className="p-4 border-t border-slate-200 dark:border-slate-600 space-y-4">
+                <div className="p-4 border-t border-light-border dark:border-dark-border space-y-4">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <p><strong>Reporter:</strong> {incident.reporterName}</p>
                         <p><strong>Mine:</strong> {incident.mine}</p>
@@ -89,7 +89,7 @@ const IncidentCard = ({ incident }) => {
                         {incident.type === 'Lost Time Injury (LTI)' && (
                             <div className="flex items-center gap-2">
                                 <label className="text-xs font-semibold">Mandays Lost:</label>
-                                <input type="number" value={mandays} onChange={(e) => setMandays(e.target.value)} onBlur={handleMandaysBlur} className="w-16 bg-slate-100 dark:bg-slate-700 p-1 rounded-md border border-slate-300 dark:border-slate-600 text-sm" />
+                                <input type="number" value={mandays} onChange={(e) => setMandays(e.target.value)} onBlur={handleMandaysBlur} className="w-16 bg-slate-100 dark:bg-slate-700 p-1 rounded-md border border-light-border dark:border-dark-border text-sm" />
                             </div>
                         )}
                     </div>
@@ -126,8 +126,8 @@ const IncidentCard = ({ incident }) => {
                                 ))}
                             </div>
                             <div className="flex gap-2">
-                                <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="flex-grow bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm" />
-                                <button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white dark:text-slate-900 p-2 rounded-md"><Send size={18} /></button>
+                                <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="flex-grow bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border text-sm" />
+                                <button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-3 py-2 rounded-md text-sm"><Send size={16} /></button>
                             </div>
                         </form>
                     </div>
@@ -161,7 +161,7 @@ const IncidentLogPage = () => {
     });
 
     const filteredAndSortedIncidents = useMemo(() => {
-        let filtered = [...(incidents || [])]; // Safety check for incidents
+        let filtered = [...incidents];
 
         if (filters.status.length > 0) filtered = filtered.filter(inc => filters.status.includes(inc.status));
         if (filters.type.length > 0) filtered = filtered.filter(inc => filters.type.includes(inc.type));
@@ -191,12 +191,8 @@ const IncidentLogPage = () => {
     const sortOptions = [{key: 'date', label: 'Date'}, {key: 'type', label: 'Incident Type'}, {key: 'mine', label: 'Mine'}];
     
     return (
-        <div>
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl sm:text-3xl font-semibold">Incident Log</h1>
-            </div>
-
-            <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md mb-4">
+        <div className="space-y-4">
+            <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
                 <div className="grid grid-cols-2 gap-2">
                     <button 
                         onClick={() => setIsFilterOpen(true)}
@@ -209,10 +205,10 @@ const IncidentLogPage = () => {
                         )}
                     </button>
                     <div className="flex gap-2">
-                         <select value={sortConfig.key} onChange={e => setSortConfig({...sortConfig, key: e.target.value})} className="flex-grow p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600 bg-slate-100">
+                         <select value={sortConfig.key} onChange={e => setSortConfig({...sortConfig, key: e.target.value})} className="flex-grow p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border bg-slate-100">
                             {sortOptions.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
                         </select>
-                        <button onClick={() => setSortConfig({...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 rounded-md border dark:border-slate-600 bg-slate-100 dark:bg-slate-700">
+                        <button onClick={() => setSortConfig({...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 rounded-md border dark:border-dark-border bg-slate-100 dark:bg-slate-700">
                             <ArrowDownUp size={16} />
                         </button>
                     </div>
@@ -236,7 +232,6 @@ const IncidentLogPage = () => {
     );
 };
 
-// CRITICAL FIX: Correctly accept props
 const FilterPanel = ({ onClose, filters, setFilters }) => {
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     const [tempFilters, setTempFilters] = useState(filters);
@@ -307,8 +302,8 @@ const FilterPanel = ({ onClose, filters, setFilters }) => {
                             ))}
                         </div>
                         <div className="flex gap-2">
-                            <input type="date" value={tempFilters.dateRange.start ? format(tempFilters.dateRange.start, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('start', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
-                            <input type="date" value={tempFilters.dateRange.end ? format(tempFilters.dateRange.end, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('end', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
+                            <input type="date" value={tempFilters.dateRange.start ? format(tempFilters.dateRange.start, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('start', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border" />
+                            <input type="date" value={tempFilters.dateRange.end ? format(tempFilters.dateRange.end, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('end', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-dark-border" />
                         </div>
                     </div>
                     <MultiSelectFilter title="Status" options={['Open', 'Closed']} selected={tempFilters.status} onSelect={v => handleMultiSelect('status', v)} />
@@ -327,7 +322,7 @@ const FilterPanel = ({ onClose, filters, setFilters }) => {
 const MultiSelectFilter = ({ title, options, selected, onSelect }) => (
     <div className="space-y-2">
         <h3 className="font-semibold text-sm">{title}</h3>
-        <div className="max-h-32 overflow-y-auto space-y-1 p-2 border rounded-md dark:border-slate-600">
+        <div className="max-h-32 overflow-y-auto space-y-1 p-2 border rounded-md dark:border-dark-border">
             {options.map(option => (
                 <label key={option} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={selected.includes(option)} onChange={() => onSelect(option)} className="h-4 w-4 rounded text-light-accent focus:ring-light-accent" />

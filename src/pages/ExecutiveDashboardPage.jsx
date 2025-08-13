@@ -8,8 +8,7 @@ import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
 
 const fullConfig = resolveConfig(tailwindConfig);
-// CRITICAL FIX: Corrected the path to the chart colors
-const chartColors = fullConfig.theme.chart; 
+const chartColors = fullConfig.theme.colors.chart;
 
 const COLORS = Object.values(chartColors);
 
@@ -67,7 +66,7 @@ const ExecutiveDashboardPage = () => {
         if (period === 'Last 6 Months') dateFrom = subMonths(dateFrom, 6);
         if (period === 'Last 12 Months') dateFrom = subMonths(dateFrom, 12);
 
-        return (incidents || []).filter(inc => { // Safety check for incidents
+        return (incidents || []).filter(inc => {
             const incDate = new Date(inc.date);
             return incDate >= dateFrom &&
                    (selectedMines.length > 0 ? selectedMines.includes(inc.mine) : false) &&
@@ -81,7 +80,7 @@ const ExecutiveDashboardPage = () => {
         if (!mine) return { chartData: [], totalIncidents: 0, hasNearMiss: false };
         
         const mineIncidents = filteredIncidents.filter(inc => inc.mine === mine);
-        const data = (INCIDENT_TYPES || []).map(type => ({ // Safety check for INCIDENT_TYPES
+        const data = (INCIDENT_TYPES || []).map(type => ({
             name: type,
             value: mineIncidents.filter(inc => inc.type === type).length
         })).filter(item => item.value > 0);
@@ -129,7 +128,6 @@ const ExecutiveDashboardPage = () => {
     
     return (
         <div className="space-y-4">
-            <h1 className="text-2xl sm:text-3xl font-semibold">Executive Dashboard</h1>
             <div className="space-y-3">
                 <div className="overflow-x-auto pb-2">
                     <div className="flex items-center gap-2 w-max">

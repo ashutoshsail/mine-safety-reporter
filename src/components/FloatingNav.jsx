@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef, useContext, memo } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Home, FileText, List, BarChart2, GitCompareArrows, X, Menu, ShieldCheck } from 'lucide-react';
+import { Home, FileText, List, X, Menu, Settings, ShieldCheck } from 'lucide-react';
 
 const baseNavItems = [
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'report', icon: FileText, label: 'Report Incident' },
   { id: 'log', icon: List, label: 'Incident Log' },
-  { id: 'analytics', icon: BarChart2, label: 'Dashboard' },
-  { id: 'comparison', icon: GitCompareArrows, label: 'Comparison' },
 ];
 
 const FloatingNav = memo(({ setRoute, currentRoute }) => {
@@ -36,7 +34,8 @@ const FloatingNav = memo(({ setRoute, currentRoute }) => {
   if (user.isAdmin) {
     navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin Panel' });
   }
-  // The "Settings" item is now handled by the header icon and has been removed from this list.
+  navItems.push({ id: 'settings', icon: Settings, label: 'Settings' });
+
 
   return (
     <>

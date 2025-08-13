@@ -131,7 +131,6 @@ const ReportIncidentPage = () => {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-4">Report New Incident</h1>
             <div className="bg-light-card dark:bg-dark-card p-4 sm:p-6 rounded-lg shadow-md">
                 {step === 1 && (
                     <form onSubmit={handleSubmit} className="space-y-4">

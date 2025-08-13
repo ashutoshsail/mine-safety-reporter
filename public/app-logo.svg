@@ -1,0 +1,73 @@
+<svg width="320" height="400" viewBox="0 0 320 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Shield with mining helmet and upward arrow">
+  <!-- Main Shield Shape: pointed-oval/rounded triangle -->
+  <path 
+    d="M160 20 
+       C230 20, 290 140, 160 380 
+       C30 140, 90 20, 160 20 Z" 
+    fill="#204a87" 
+    stroke="#182c4f" stroke-width="4"/>
+
+  <!-- Mining Helmet silhouette filling upper shield portion -->
+  <path
+    d="M90 90
+       Q160 20, 230 90
+       Q220 110, 180 110
+       Q175 130, 145 130
+       Q135 110, 90 110
+       Z"
+    fill="#2a6edf" 
+    stroke="#1f4887" stroke-width="3"/>
+
+  <!-- Helmet brim -->
+  <rect x="95" y="105" width="130" height="12" rx="6" fill="#1e3d80" />
+
+  <!-- Faceted geological layers: irregular polygonal shapes slicing helmet and shield -->
+
+  <!-- Facet 1 - Large upper left -->
+  <polygon points="90,90 135,120 125,140 80,130" fill="#305eab" />
+  <path d="M90 90 L135 120 L125 140 L80 130 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 2 - Upper center -->
+  <polygon points="135,120 180,110 165,140 125,140" fill="#4b7ecf" />
+  <path d="M135 120 L180 110 L165 140 L125 140 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 3 - Upper right -->
+  <polygon points="180,110 230,90 220,130 165,140" fill="#305eab" />
+  <path d="M180 110 L230 90 L220 130 L165 140 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 4 - Mid shield left -->
+  <polygon points="80,130 125,140 110,155 70,150" fill="#557ec3" />
+  <path d="M80 130 L125 140 L110 155 L70 150 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 5 - Mid shield right -->
+  <polygon points="165,140 220,130 210,160 145,160" fill="#557ec3" />
+  <path d="M165 140 L220 130 L210 160 L145 160 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 6 - Lower shield left -->
+  <polygon points="70,150 110,155 115,190 75,180" fill="#7398d8" />
+  <path d="M70 150 L110 155 L115 190 L75 180 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 7 - Lower shield right -->
+  <polygon points="145,160 210,160 195,190 115,190" fill="#7398d8" />
+  <path d="M145 160 L210 160 L195 190 L115 190 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Facet 8 - Bottom shield tip center -->
+  <polygon points="115,190 195,190 160,380" fill="#8dabe8" />
+  <path d="M115 190 L195 190 L160 380 Z" fill="none" stroke="#17325b" stroke-width="1" />
+
+  <!-- Negative space upward arrow in center -->
+
+  <!-- Arrow shape defined by clipping path and mask to create transparency effect -->
+  <defs>
+    <clipPath id="arrow-clip">
+      <path d="M160 120 L140 180 L150 180 L150 240 L170 240 L170 180 L180 180 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Cover the arrow shape with background color to create negative space visually -->
+  <rect x="90" y="90" width="140" height="290" fill="#204a87" clip-path="url(#arrow-clip)" />
+
+  <!-- Outline arrow for clear definition -->
+  <path d="M160 120 L140 180 L150 180 L150 240 L170 240 L170 180 L180 180 Z" fill="none" stroke="#33b864" stroke-width="4" />
+
+</svg>

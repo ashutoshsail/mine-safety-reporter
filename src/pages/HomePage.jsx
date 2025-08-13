@@ -122,7 +122,7 @@ const HomePage = () => {
         return (
             <button 
                 onClick={() => setActiveTab(tabName)} 
-                className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold transition-colors border-y ${posClass} ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold transition-colors border-y ${posClass} ${
                     activeTab === tabName 
                     ? `${colorClasses.activeBg} text-white border-transparent` 
                     : `bg-light-card dark:bg-dark-card ${colorClasses.border} ${colorClasses.text} hover:bg-slate-100 dark:hover:bg-slate-700`
@@ -142,12 +142,11 @@ const HomePage = () => {
 
     return (
         <div className="space-y-4">
-            <h1 className="text-2xl font-semibold leading-tight">Home</h1>
-            <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text -mt-2">Hello, <span className="font-semibold">{user.name || 'User'}</span></p>
+            <p className="text-light-accent dark:text-dark-accent">Hello, <span className="font-semibold">{user.name || 'User'}</span></p>
             
             {homePageNotice && homePageNotice.isActive && (
                 <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md border-l-4 border-light-accent">
-                    <h2 className="font-bold text-lg mb-1">{homePageNotice.title}</h2>
+                    <h2 className="font-semibold text-lg mb-1">{homePageNotice.title}</h2>
                     {homePageNotice.imageUrl && <img src={homePageNotice.imageUrl} alt={homePageNotice.title} className="w-full h-auto max-h-48 object-cover rounded-md my-2" />}
                     <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{homePageNotice.message}</p>
                 </div>
@@ -162,21 +161,21 @@ const HomePage = () => {
                         id="status-date"
                         value={format(selectedDate, 'yyyy-MM-dd')}
                         onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                        className="bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 w-full"
+                        className="bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border w-full"
                     />
                 </div>
-                <div className="mb-3 flex flex-wrap justify-center gap-y-2">
+                <div className="mb-3 flex flex-wrap justify-center gap-y-2 px-2">
                     <div className="flex w-auto">
-                        <TabButton tabName="no-submission" label="No Submission" count={noSubmissionMines.length} colorClasses={{border: 'border-red-500', text: 'text-red-500', activeBg: 'bg-red-500'}} position="left" />
-                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} colorClasses={{border: 'border-yellow-500', text: 'text-yellow-500', activeBg: 'bg-yellow-500'}} position="center" />
-                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} colorClasses={{border: 'border-green-500', text: 'text-green-500', activeBg: 'bg-green-500'}} position="right" />
+                        <TabButton tabName="no-submission" label="No Report" count={noSubmissionMines.length} colorClasses={{border: 'border-light-status-danger', text: 'text-light-status-danger', activeBg: 'bg-light-status-danger'}} position="left" />
+                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} colorClasses={{border: 'border-light-status-warning', text: 'text-light-status-warning', activeBg: 'bg-light-status-warning'}} position="center" />
+                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} colorClasses={{border: 'border-light-status-success', text: 'text-light-status-success', activeBg: 'bg-light-status-success'}} position="right" />
                     </div>
                 </div>
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
-                        {activeTab === 'no-submission' && noSubmissionMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><XCircle size={14} className="text-red-500 flex-shrink-0" /><span>{mine}</span></div>)}
-                        {activeTab === 'no-accident' && noAccidentMines.map(mine => <div key={mine} onClick={() => setSubmissionModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-green-500 flex-shrink-0" /><span>{mine}</span></div>)}
-                        {activeTab === 'accident' && accidentMines.map(mine => <div key={mine} onClick={() => handleAccidentMineClick(mine)} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" /><span>{mine}</span></div>)}
+                        {activeTab === 'no-submission' && noSubmissionMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><XCircle size={14} className="text-light-status-danger" /><span>{mine}</span></div>)}
+                        {activeTab === 'no-accident' && noSubmissionMines.map(mine => <div key={mine} onClick={() => setSubmissionModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-light-status-success" /><span>{mine}</span></div>)}
+                        {activeTab === 'accident' && accidentMines.map(mine => <div key={mine} onClick={() => handleAccidentMineClick(mine)} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><AlertTriangle size={14} className="text-light-status-warning" /><span>{mine}</span></div>)}
                     </div>
                 )}
             </div>
@@ -193,7 +192,7 @@ const HomePage = () => {
                         >
                             {MINES.map(mine => <option key={mine} value={mine}>{mine}</option>)}
                         </select>
-                        <button type="submit" className="flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white dark:text-slate-900 font-semibold px-3 py-2 rounded-md text-sm">
+                        <button type="submit" className="flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-3 py-2 rounded-md text-sm">
                             <Send size={14} />
                             <span>Submit</span>
                         </button>

@@ -13,7 +13,7 @@ import ExecutiveDashboardPage from './pages/ExecutiveDashboardPage';
 import ComparisonPage from './pages/ComparisonPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPanel from './pages/AdminPanel';
-import { Menu, Settings } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 const useWindowSize = () => {
     const [width, setWidth] = useState(window.innerWidth);
@@ -23,6 +23,16 @@ const useWindowSize = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
     return width;
+};
+
+const pageTitles = {
+  home: 'Home',
+  report: 'Report New Incident',
+  log: 'Incident Log',
+  analytics: 'Executive Dashboard',
+  comparison: 'Period Comparison',
+  settings: 'Settings',
+  admin: 'Admin Panel',
 };
 
 const Router = ({ route }) => {
@@ -79,13 +89,12 @@ function App() {
       )}
       
       <div ref={mainContentRef} className="transition-all duration-300 lg:ml-64 h-screen overflow-y-auto">
-        <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-light-card dark:bg-dark-card border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2">
-            <Menu size={24} />
+        <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sticky top-0 z-20">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 h-10 w-10 flex items-center justify-center rounded-full border border-light-border dark:border-dark-border">
+            <Shield size={20} className="text-light-primary dark:text-dark-primary" />
           </button>
-          <button onClick={() => handleSetRoute('settings')} className="p-2">
-            <Settings size={20} />
-          </button>
+          <h1 className="text-base font-semibold truncate">{pageTitles[route]}</h1>
+          <div className="w-10"></div> {/* Placeholder to balance the header */}
         </header>
 
         <main className={`p-3 sm:p-4 ${!isLargeScreen && navPreference === 'bottom' ? 'pb-20' : 'pb-24'}`}>

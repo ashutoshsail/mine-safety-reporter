@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AppContext } from '../context/AppContext';
 import { ArrowUp } from 'lucide-react';
 
 const BackToTopButton = ({ scrollContainerRef }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const { navPreference } = useContext(AppContext);
 
     useEffect(() => {
         const container = scrollContainerRef.current;
@@ -29,9 +31,10 @@ const BackToTopButton = ({ scrollContainerRef }) => {
         });
     };
 
+    const positionClass = navPreference === 'bottom' ? 'bottom-20' : 'bottom-4';
+
     return (
-        // CRITICAL FIX: Increased right margin for better spacing
-        <div className="fixed bottom-4 right-36 z-40 lg:hidden">
+        <div className={`fixed ${positionClass} right-36 z-40 lg:hidden`}>
             {isVisible && (
                 <button
                     onClick={scrollToTop}

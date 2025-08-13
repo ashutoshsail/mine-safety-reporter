@@ -35,7 +35,7 @@ const ConfigManager = ({ title, collectionName, items }) => {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-            <h3 className="font-semibold mb-2">{title}</h3>
+            <h3 className="font-semibold text-base mb-2">{title}</h3>
             <form onSubmit={handleAddItem} className="flex gap-2 mb-3">
                 <input
                     type="text"
@@ -44,7 +44,7 @@ const ConfigManager = ({ title, collectionName, items }) => {
                     placeholder={`New ${title.slice(0, -1)} Name...`}
                     className="flex-grow bg-light-card dark:bg-dark-card p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm"
                 />
-                <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white p-2 rounded-md"><Plus size={20} /></button>
+                <button type="submit" className="bg-light-secondary hover:bg-light-secondary/90 text-white p-2 rounded-md"><Plus size={20} /></button>
             </form>
             <ul className="space-y-2">
                 {items && items.map(item => (
@@ -105,7 +105,7 @@ const LogoManager = () => {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg space-y-3">
-            <h3 className="font-semibold flex items-center gap-2"><ImageIcon size={18}/> Company Logo</h3>
+            <h3 className="font-semibold flex items-center gap-2 text-base"><ImageIcon size={18}/> Company Logo</h3>
             <input 
                 value={logoUrl} 
                 onChange={(e) => setLogoUrl(e.target.value)} 
@@ -155,10 +155,10 @@ const AdminNoticeManager = () => {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg space-y-3">
-            <h3 className="font-semibold flex items-center gap-2"><Megaphone size={18}/> Home Page Notice</h3>
+            <h3 className="font-semibold flex items-center gap-2 text-base"><Megaphone size={18}/> Home Page Notice</h3>
             <div className="flex items-center justify-between">
                 <label htmlFor="isActive" className="font-semibold text-sm">Activate Notice</label>
-                <input type="checkbox" id="isActive" name="isActive" checked={notice.isActive} onChange={handleInputChange} className="h-5 w-5 rounded text-light-accent focus:ring-light-accent" />
+                <input type="checkbox" id="isActive" name="isActive" checked={notice.isActive} onChange={handleInputChange} className="h-5 w-5 rounded text-light-primary focus:ring-light-primary" />
             </div>
             <input name="title" value={notice.title} onChange={handleInputChange} placeholder="Notice Title" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
             <textarea name="message" value={notice.message} onChange={handleInputChange} placeholder="Notice Message..." rows="3" className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600"></textarea>
@@ -225,7 +225,7 @@ const AdminPanel = () => {
     return (
         <div className="max-w-4xl mx-auto space-y-4">
             <div className="flex items-center gap-2">
-                <ShieldCheck size={24} className="text-light-accent" />
+                <ShieldCheck size={24} className="text-light-primary" />
                 <h1 className="text-2xl font-semibold">Admin Panel</h1>
             </div>
 

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { AppContext } from '../context/AppContext';
+import { ConfigContext } from '../context/ConfigContext';
 import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, Shield, ShieldCheck, X } from 'lucide-react';
 
 const navItems = [
@@ -11,11 +12,12 @@ const navItems = [
 ];
 
 const Sidebar = ({ setRoute, currentRoute, isOpen, setIsOpen }) => {
-  const { user } = React.useContext(AppContext);
+  const { user } = useContext(AppContext);
+  const { companyProfile } = useContext(ConfigContext);
 
   const handleNavClick = (route) => {
     setRoute(route);
-    setIsOpen(false); // Close sidebar on mobile after navigation
+    setIsOpen(false);
   };
 
   return (
@@ -25,43 +27,47 @@ const Sidebar = ({ setRoute, currentRoute, isOpen, setIsOpen }) => {
 
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 left-0 h-full w-64 bg-light-card dark:bg-dark-card border-r border-slate-200 dark:border-slate-700 flex flex-col p-4 z-40 transition-transform duration-300 ease-in-out
+        className={`fixed top-0 left-0 h-full w-64 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col p-4 z-40 transition-transform duration-300 ease-in-out
                    ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
       >
         <div className="flex items-center justify-between mb-8 px-2">
-          <div className="flex items-center gap-2">
-            <Shield size={28} className="text-light-accent" />
-            <h1 className="text-xl font-bold">Mine Safety</h1>
+          <div className="flex items-center gap-3">
+            {companyProfile?.logoUrl ? (
+                <img src={companyProfile.logoUrl} alt="Company Logo" className="h-8 w-auto object-contain" />
+            ) : (
+                <Shield size={28} className="text-light-primary dark:text-dark-primary" />
+            )}
+            <h1 className="text-lg font-semibold text-light-text dark:text-dark-text">Mine Safety</h1>
           </div>
-          <button onClick={() => setIsOpen(false)} className="lg:hidden p-1">
+          <button onClick={() => setIsOpen(false)} className="lg:hidden p-1 text-light-subtle-text dark:text-dark-subtle-text">
             <X size={24} />
           </button>
         </div>
-        <nav className="flex-grow space-y-2">
+        <nav className="flex-grow space-y-1">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-normal transition-colors text-left text-light-text dark:text-dark-text ${
                 currentRoute === item.id
-                  ? 'bg-light-accent/10 text-light-accent dark:bg-dark-accent/20 dark:text-dark-accent'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                  ? 'bg-light-primary/10 text-light-primary font-semibold'
+                  : 'hover:bg-light-text/5 dark:hover:bg-dark-text/5'
               }`}
             >
-              <item.icon size={20} />
+              <item.icon size={18} />
               <span>{item.label}</span>
             </button>
           ))}
           {user.isAdmin && (
             <button
               onClick={() => handleNavClick('admin')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-normal transition-colors text-left text-light-text dark:text-dark-text ${
                 currentRoute === 'admin'
-                  ? 'bg-light-accent/10 text-light-accent dark:bg-dark-accent/20 dark:text-dark-accent'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                  ? 'bg-light-primary/10 text-light-primary font-semibold'
+                  : 'hover:bg-light-text/5 dark:hover:bg-dark-text/5'
               }`}
             >
-              <ShieldCheck size={20} />
+              <ShieldCheck size={18} />
               <span>Admin Panel</span>
             </button>
           )}
@@ -69,13 +75,13 @@ const Sidebar = ({ setRoute, currentRoute, isOpen, setIsOpen }) => {
         <div>
           <button
             onClick={() => handleNavClick('settings')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-normal transition-colors text-left text-light-text dark:text-dark-text ${
               currentRoute === 'settings'
-                ? 'bg-slate-200 dark:bg-slate-700'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                ? 'bg-light-text/10 dark:bg-dark-text/10'
+                : 'hover:bg-light-text/5 dark:hover:bg-dark-text/5'
             }`}
           >
-            <Settings size={20} />
+            <Settings size={18} />
             <span>Settings</span>
           </button>
         </div>

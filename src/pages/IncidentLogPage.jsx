@@ -161,7 +161,7 @@ const IncidentLogPage = () => {
     });
 
     const filteredAndSortedIncidents = useMemo(() => {
-        let filtered = [...incidents];
+        let filtered = [...(incidents || [])]; // Safety check for incidents
 
         if (filters.status.length > 0) filtered = filtered.filter(inc => filters.status.includes(inc.status));
         if (filters.type.length > 0) filtered = filtered.filter(inc => filters.type.includes(inc.type));
@@ -236,6 +236,7 @@ const IncidentLogPage = () => {
     );
 };
 
+// CRITICAL FIX: Correctly accept props
 const FilterPanel = ({ onClose, filters, setFilters }) => {
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     const [tempFilters, setTempFilters] = useState(filters);
@@ -311,8 +312,8 @@ const FilterPanel = ({ onClose, filters, setFilters }) => {
                         </div>
                     </div>
                     <MultiSelectFilter title="Status" options={['Open', 'Closed']} selected={tempFilters.status} onSelect={v => handleMultiSelect('status', v)} />
-                    <MultiSelectFilter title="Mine" options={mines} selected={tempFilters.mine} onSelect={v => handleMultiSelect('mine', v)} />
-                    <MultiSelectFilter title="Incident Type" options={types} selected={tempFilters.type} onSelect={v => handleMultiSelect('type', v)} />
+                    <MultiSelectFilter title="Mine" options={MINES} selected={tempFilters.mine} onSelect={v => handleMultiSelect('mine', v)} />
+                    <MultiSelectFilter title="Incident Type" options={INCIDENT_TYPES} selected={tempFilters.type} onSelect={v => handleMultiSelect('type', v)} />
                 </div>
                 <div className="p-4 border-t flex justify-between">
                     <button onClick={resetFilters} className="text-sm font-semibold text-slate-500">Reset</button>

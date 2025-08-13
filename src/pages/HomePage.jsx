@@ -71,7 +71,7 @@ const HomePage = () => {
             setLoadingSubmissions(false);
         };
         fetchSubmissions();
-    }, [selectedDate, incidents]); // Re-fetch when incidents change to update status
+    }, [selectedDate, incidents]);
 
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     
@@ -112,25 +112,33 @@ const HomePage = () => {
         setAccidentModalData({ isOpen: true, mine: mineName, incidents: dailyIncidents });
     };
 
-    const TabButton = ({ tabName, label, count, colorClasses }) => (
-        <button 
-            onClick={() => setActiveTab(tabName)} 
-            className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold transition-colors rounded-full ${
-                activeTab === tabName 
-                ? `${colorClasses.activeBg} text-white` 
-                : `border ${colorClasses.border} ${colorClasses.text} hover:bg-slate-100 dark:hover:bg-slate-700`
-            }`}
-        >
-            <span>{label}</span>
-            <span className={`flex items-center justify-center w-5 h-5 text-xs rounded-full ${
-                activeTab === tabName 
-                ? 'bg-white/30 text-white' 
-                : 'bg-slate-200 dark:bg-slate-700 text-light-text dark:text-dark-text'
-            }`}>
-                {count}
-            </span>
-        </button>
-    );
+    const TabButton = ({ tabName, label, count, colorClasses, position }) => {
+        const posClass = {
+            left: 'rounded-l-full',
+            right: 'rounded-r-full',
+            center: ''
+        }[position];
+
+        return (
+            <button 
+                onClick={() => setActiveTab(tabName)} 
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold transition-colors border-y ${posClass} ${
+                    activeTab === tabName 
+                    ? `${colorClasses.activeBg} text-white border-transparent` 
+                    : `bg-light-card dark:bg-dark-card ${colorClasses.border} ${colorClasses.text} hover:bg-slate-100 dark:hover:bg-slate-700`
+                }`}
+            >
+                <span>{label}</span>
+                <span className={`flex items-center justify-center w-5 h-5 text-xs rounded-full ${
+                    activeTab === tabName 
+                    ? 'bg-white/30 text-white' 
+                    : 'bg-slate-200 dark:bg-slate-700 text-light-text dark:text-dark-text'
+                }`}>
+                    {count}
+                </span>
+            </button>
+        );
+    };
 
     return (
         <div className="space-y-4">
@@ -157,11 +165,11 @@ const HomePage = () => {
                         className="bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 w-full"
                     />
                 </div>
-                <div className="border-b border-slate-200 dark:border-slate-600 mb-3 overflow-x-auto">
-                    <div className="flex w-max gap-2 p-1">
-                        <TabButton tabName="no-submission" label="No Submission" count={noSubmissionMines.length} colorClasses={{border: 'border-red-500', text: 'text-red-500', activeBg: 'bg-red-500'}} />
-                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} colorClasses={{border: 'border-yellow-500', text: 'text-yellow-500', activeBg: 'bg-yellow-500'}} />
-                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} colorClasses={{border: 'border-green-500', text: 'text-green-500', activeBg: 'bg-green-500'}} />
+                <div className="mb-3 flex flex-wrap justify-center gap-y-2">
+                    <div className="flex w-auto">
+                        <TabButton tabName="no-submission" label="No Submission" count={noSubmissionMines.length} colorClasses={{border: 'border-red-500', text: 'text-red-500', activeBg: 'bg-red-500'}} position="left" />
+                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} colorClasses={{border: 'border-yellow-500', text: 'text-yellow-500', activeBg: 'bg-yellow-500'}} position="center" />
+                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} colorClasses={{border: 'border-green-500', text: 'text-green-500', activeBg: 'bg-green-500'}} position="right" />
                     </div>
                 </div>
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (

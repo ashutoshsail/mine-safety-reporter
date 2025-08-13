@@ -8,7 +8,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const ReportIncidentPage = () => {
-    const { user, addIncident, currentDate, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
+    const { user, addIncident, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
     const { minesConfig, sectionsConfig, INCIDENT_TYPES } = useContext(ConfigContext);
     
     const [step, setStep] = useState(1);
@@ -24,8 +24,8 @@ const ReportIncidentPage = () => {
         mine: lastSelectedMine || (activeMines.length > 0 ? activeMines[0].name : ''),
         sectionName: '',
         otherSection: '',
-        date: new Date(currentDate).toISOString().split('T')[0],
-        time: new Date(currentDate).toTimeString().slice(0, 5),
+        date: new Date().toISOString().split('T')[0], // CRITICAL FIX: Use new Date()
+        time: new Date().toTimeString().slice(0, 5),   // CRITICAL FIX: Use new Date()
         type: INCIDENT_TYPES.length > 0 ? INCIDENT_TYPES[0] : 'First Aid',
         location: '',
         description: '',
@@ -135,7 +135,7 @@ const ReportIncidentPage = () => {
             <div className="bg-light-card dark:bg-dark-card p-4 sm:p-6 rounded-lg shadow-md">
                 {step === 1 && (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pb-24">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pb-28">
                             <FormField label="Reporter Name"><input type="text" value={formData.reporterName} readOnly className="w-full bg-slate-200 dark:bg-slate-800 p-2 rounded-md text-sm cursor-not-allowed" /></FormField>
                             <FormField label="Incident Type">
                                 <CustomSelect name="type" value={formData.type} onChange={handleInputChange} options={INCIDENT_TYPES} />
@@ -151,42 +151,49 @@ const ReportIncidentPage = () => {
                             <FormField label="Time"><input type="time" name="time" value={formData.time} onChange={handleInputChange} className={inputClass} /></FormField>
                             <div className="col-span-2"><FormField label="Location"><input type="text" name="location" value={formData.location} onChange={handleInputChange} className={inputClass} required /></FormField></div>
                             <div className="col-span-2"><FormField label="Description"><textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className={inputClass} required></textarea></FormField></div>
-                        </div>
                         
-                        <div className="col-span-2 border-t pt-4">
-                            <h3 className="font-semibold mb-2 text-base">Victim Details {isVictimInfoRequired ? '(Required)' : '(Optional)'}</h3>
-                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                                    <input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Victim's Name" className={`col-span-2 ${inputClass}`} />
-                                    <select name="category" value={currentVictim.category} onChange={handleVictimChange} className={inputClass}>
-                                        <option>Regular</option>
-                                        <option>Contractual</option>
-                                    </select>
-                                    {currentVictim.category === 'Regular' ? (
-                                        <input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} />
-                                    ) : (
-                                        <>
-                                            <input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} />
-                                            <input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} />
-                                        </>
-                                    )}
+                            <div className="col-span-2 border-t pt-4">
+                                <h3 className="font-semibold mb-2 text-base">Victim Details {isVictimInfoRequired ? '(Required)' : '(Optional)'}</h3>
+                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                        <input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Victim's Name" className={`col-span-2 ${inputClass}`} />
+                                        <select name="category" value={currentVictim.category} onChange={handleVictimChange} className={inputClass}>
+                                            <option>Regular</option>
+                                            <option>Contractual</option>
+                                        </select>
+                                        {currentVictim.category === 'Regular' ? (
+                                            <input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} />
+                                        ) : (
+                                            <>
+                                                <input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} />
+                                                <input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} />
+                                            </>
+                                        )}
+                                    </div>
+                                    <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-green-500' : 'bg-light-accent'}`}>
+                                        {victimFeedback ? <><Check size={16}/> Victim Added</> : <><UserPlus size={16}/> Add Victim</>}
+                                    </button>
                                 </div>
-                                <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-green-500' : 'bg-light-accent'}`}>
-                                    {victimFeedback ? <><Check size={16}/> Victim Added</> : <><UserPlus size={16}/> Add Victim</>}
+                                {formData.victims.map((v, i) => (
+                                    <div key={i} className="flex items-center justify-between p-2 mt-2 bg-slate-100 dark:bg-slate-700 rounded-md text-sm">
+                                        <span>{v.name} ({v.category})</span>
+                                        <button type="button" onClick={() => removeVictim(i)}><Trash2 size={14} className="text-red-500 hover:text-red-700"/></button>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="col-span-2 border-t pt-4 space-y-3">
+                                <FormField label="Cause of Incident (Optional)"><textarea name="incidentCause" value={formData.incidentCause} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
+                                <FormField label="Immediate Action Taken (Optional)"><textarea name="immediateAction" value={formData.immediateAction} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
+                                <FormField label="Upload Photos"><label className="cursor-pointer bg-light-secondary hover:bg-light-secondary/90 text-white font-semibold px-3 py-2 rounded-md text-sm flex items-center gap-2 w-max"><Upload size={14} /><span>Choose Files</span><input type="file" multiple onChange={handlePhotoUpload} className="hidden" accept="image/*" /></label></FormField>
+                                {formData.photos.length > 0 && <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">{formData.photos.map((photo, index) => (<div key={index} className="relative"><img src={photo.url} alt={photo.name} className="w-full h-20 object-cover rounded-md" /><button onClick={() => removePhoto(index)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button></div>))}</div>}
+                            </div>
+
+                            <div className="col-span-2 mt-6 flex justify-center border-t pt-4">
+                                <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white font-semibold px-6 py-2.5 rounded-md flex items-center gap-2 text-sm">
+                                    <ChevronRight size={16} /><span>Next: Preview</span>
                                 </button>
                             </div>
-                            {formData.victims.map((v, i) => (
-                                <div key={i} className="flex items-center justify-between p-2 mt-2 bg-slate-100 dark:bg-slate-700 rounded-md text-sm">
-                                    <span>{v.name} ({v.category})</span>
-                                    <button type="button" onClick={() => removeVictim(i)}><Trash2 size={14} className="text-red-500 hover:text-red-700"/></button>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="mt-6 text-right border-t pt-4">
-                            <button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-4 py-2 rounded-md flex items-center gap-2 float-right text-sm">
-                                <ChevronRight size={16} /><span>Next: Preview</span>
-                            </button>
                         </div>
                     </form>
                 )}

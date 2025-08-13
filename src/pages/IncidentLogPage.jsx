@@ -22,6 +22,7 @@ const IncidentCard = ({ incident }) => {
     const [showHistory, setShowHistory] = useState(false);
 
     const handleStatusToggle = () => {
+        if (!window.confirm(`Are you sure you want to change the status to "${incident.status === 'Open' ? 'Closed' : 'Open'}"?`)) return;
         const newStatus = incident.status === 'Open' ? 'Closed' : 'Open';
         updateIncident(incident.docId, { status: newStatus });
     };
@@ -50,20 +51,25 @@ const IncidentCard = ({ incident }) => {
     
     return (
         <div className={`bg-light-card dark:bg-dark-card rounded-lg shadow-md border-l-4 ${mineColors[incident.mine] || 'border-slate-500'}`}>
-            <div className="p-3 flex items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="p-4 flex items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className="flex-grow">
                     <p className="font-semibold">{incident.type}</p>
                     <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{incident.id}</p>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <span className={`text-xs px-2 py-1 rounded-full ${incident.status === 'Open' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'}`}>{incident.status}</span>
-                    <span className="text-sm hidden sm:block">{format(new Date(incident.date), 'PPP')}</span>
-                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                <div className="hidden lg:block w-96 mx-4 flex-shrink-0">
+                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text line-clamp-2">{incident.description}</p>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                    <div className="w-20 text-center">
+                        <span className={`text-xs px-2 py-1 rounded-full ${incident.status === 'Open' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'}`}>{incident.status}</span>
+                    </div>
+                    <span className="text-sm hidden sm:block w-28 text-right">{format(new Date(incident.date), 'PPP')}</span>
+                    <ChevronDown size={20} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
             </div>
 
             {isExpanded && (
-                <div className="p-3 border-t border-slate-200 dark:border-slate-600 space-y-3">
+                <div className="p-4 border-t border-slate-200 dark:border-slate-600 space-y-4">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <p><strong>Reporter:</strong> {incident.reporterName}</p>
                         <p><strong>Mine:</strong> {incident.mine}</p>
@@ -145,7 +151,6 @@ const IncidentLogPage = () => {
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     
-    // Filters State
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
     const [filters, setFilters] = useState({
         status: [],
@@ -158,16 +163,9 @@ const IncidentLogPage = () => {
     const filteredAndSortedIncidents = useMemo(() => {
         let filtered = [...incidents];
 
-        // Apply filters
-        if (filters.status.length > 0) {
-            filtered = filtered.filter(inc => filters.status.includes(inc.status));
-        }
-        if (filters.type.length > 0) {
-            filtered = filtered.filter(inc => filters.type.includes(inc.type));
-        }
-        if (filters.mine.length > 0) {
-            filtered = filtered.filter(inc => filters.mine.includes(inc.mine));
-        }
+        if (filters.status.length > 0) filtered = filtered.filter(inc => filters.status.includes(inc.status));
+        if (filters.type.length > 0) filtered = filtered.filter(inc => filters.type.includes(inc.type));
+        if (filters.mine.length > 0) filtered = filtered.filter(inc => filters.mine.includes(inc.mine));
         if (filters.dateRange.start && filters.dateRange.end) {
             filtered = filtered.filter(inc => {
                 const incDate = new Date(inc.date);
@@ -175,7 +173,6 @@ const IncidentLogPage = () => {
             });
         }
 
-        // Apply sorting
         filtered.sort((a, b) => {
             if (sortConfig.key === 'date') {
                 const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
@@ -191,7 +188,8 @@ const IncidentLogPage = () => {
     }, [incidents, filters, sortConfig]);
     
     const activeFilterCount = Object.values(filters).filter(f => Array.isArray(f) ? f.length > 0 : f.start).length;
-
+    const sortOptions = [{key: 'date', label: 'Date'}, {key: 'type', label: 'Incident Type'}, {key: 'mine', label: 'Mine'}];
+    
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -199,19 +197,26 @@ const IncidentLogPage = () => {
             </div>
 
             <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md mb-4">
-                <button 
-                    onClick={() => setIsFilterOpen(true)}
-                    className="w-full flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-700 rounded-md"
-                >
-                    <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                    <button 
+                        onClick={() => setIsFilterOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 p-2 bg-slate-100 dark:bg-slate-700 rounded-md"
+                    >
                         <Filter size={16} className="text-light-accent" />
-                        <span className="font-semibold text-sm">Filter & Sort</span>
+                        <span className="font-semibold text-sm">Filter</span>
                         {activeFilterCount > 0 && (
                             <span className="bg-light-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">{activeFilterCount}</span>
                         )}
+                    </button>
+                    <div className="flex gap-2">
+                         <select value={sortConfig.key} onChange={e => setSortConfig({...sortConfig, key: e.target.value})} className="flex-grow p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600 bg-slate-100">
+                            {sortOptions.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
+                        </select>
+                        <button onClick={() => setSortConfig({...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 rounded-md border dark:border-slate-600 bg-slate-100 dark:bg-slate-700">
+                            <ArrowDownUp size={16} />
+                        </button>
                     </div>
-                    <ChevronDown size={20} />
-                </button>
+                </div>
             </div>
 
             <div className="space-y-3">
@@ -225,20 +230,15 @@ const IncidentLogPage = () => {
                     onClose={() => setIsFilterOpen(false)}
                     filters={filters}
                     setFilters={setFilters}
-                    sortConfig={sortConfig}
-                    setSortConfig={setSortConfig}
-                    mines={MINES}
-                    types={INCIDENT_TYPES}
                 />
             }
         </div>
     );
 };
 
-// New Filter Panel Component
-const FilterPanel = ({ onClose, filters, setFilters, sortConfig, setSortConfig, mines, types }) => {
+const FilterPanel = ({ onClose, filters, setFilters }) => {
+    const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     const [tempFilters, setTempFilters] = useState(filters);
-    const [tempSort, setTempSort] = useState(sortConfig);
 
     const handleMultiSelect = (filterKey, value) => {
         setTempFilters(prev => ({
@@ -278,7 +278,6 @@ const FilterPanel = ({ onClose, filters, setFilters, sortConfig, setSortConfig, 
 
     const applyChanges = () => {
         setFilters(tempFilters);
-        setSortConfig(tempSort);
         onClose();
     };
     
@@ -286,22 +285,19 @@ const FilterPanel = ({ onClose, filters, setFilters, sortConfig, setSortConfig, 
         const initial = { status: [], type: [], mine: [], dateRange: { start: null, end: null }, period: 'All Time' };
         setTempFilters(initial);
         setFilters(initial);
-        setSortConfig({ key: 'date', direction: 'desc' });
         onClose();
     };
 
     const periodFilters = ['Today', 'Yesterday', 'Last 7 Days', 'This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'This Year', 'Last Year'];
-    const sortOptions = [{key: 'date', label: 'Date'}, {key: 'type', label: 'Incident Type'}, {key: 'mine', label: 'Mine'}];
-
+    
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-start p-4 overflow-y-auto">
             <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-md my-8">
                 <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">Filter & Sort</h2>
+                    <h2 className="text-lg font-semibold">Filter Incidents</h2>
                     <button onClick={onClose}><X size={24} /></button>
                 </div>
                 <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
-                    {/* Date Filters */}
                     <div className="space-y-2">
                         <h3 className="font-semibold text-sm">Date Range</h3>
                         <div className="flex flex-wrap gap-2">
@@ -314,22 +310,9 @@ const FilterPanel = ({ onClose, filters, setFilters, sortConfig, setSortConfig, 
                             <input type="date" value={tempFilters.dateRange.end ? format(tempFilters.dateRange.end, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('end', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
                         </div>
                     </div>
-                    {/* Other Filters */}
                     <MultiSelectFilter title="Status" options={['Open', 'Closed']} selected={tempFilters.status} onSelect={v => handleMultiSelect('status', v)} />
                     <MultiSelectFilter title="Mine" options={mines} selected={tempFilters.mine} onSelect={v => handleMultiSelect('mine', v)} />
                     <MultiSelectFilter title="Incident Type" options={types} selected={tempFilters.type} onSelect={v => handleMultiSelect('type', v)} />
-                    {/* Sorting */}
-                    <div className="space-y-2">
-                        <h3 className="font-semibold text-sm">Sort By</h3>
-                        <div className="flex gap-2">
-                            <select value={tempSort.key} onChange={e => setTempSort({...tempSort, key: e.target.value})} className="flex-grow p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600">
-                                {sortOptions.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
-                            </select>
-                            <button onClick={() => setTempSort({...tempSort, direction: tempSort.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 rounded-md border dark:border-slate-600">
-                                <ArrowDownUp size={16} />
-                            </button>
-                        </div>
-                    </div>
                 </div>
                 <div className="p-4 border-t flex justify-between">
                     <button onClick={resetFilters} className="text-sm font-semibold text-slate-500">Reset</button>

@@ -1,11 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { mockIncidents } from '../utils/mockData';
 import { serverTimestamp } from 'firebase/firestore';
-import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check, Megaphone } from 'lucide-react';
+import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check, Image as ImageIcon, Megaphone } from 'lucide-react';
 import AssignSections from '../components/AssignSections';
 
 const ConfigManager = ({ title, collectionName, items }) => {
@@ -14,13 +14,13 @@ const ConfigManager = ({ title, collectionName, items }) => {
 
     const handleAddItem = async (e) => {
         e.preventDefault();
-        if (!newItem.name) return;
+        if (!newItem.name || !window.confirm(`Are you sure you want to add "${newItem.name}"?`)) return;
         await addDoc(collection(db, collectionName), { name: newItem.name, isActive: true });
         setNewItem({ name: '' });
     };
 
     const handleUpdateItem = async () => {
-        if (!editingItem || !editingItem.id) return;
+        if (!editingItem || !editingItem.id || !window.confirm(`Are you sure you want to save changes to "${editingItem.name}"?`)) return;
         const { id, ...dataToUpdate } = editingItem;
         const itemDoc = doc(db, collectionName, id);
         await updateDoc(itemDoc, dataToUpdate);
@@ -28,6 +28,7 @@ const ConfigManager = ({ title, collectionName, items }) => {
     };
 
     const handleToggleActive = async (item) => {
+        if (!window.confirm(`Are you sure you want to ${item.isActive ? 'deactivate' : 'activate'} "${item.name}"?`)) return;
         const itemDoc = doc(db, collectionName, item.id);
         await updateDoc(itemDoc, { isActive: !item.isActive });
     };
@@ -78,15 +79,61 @@ const ConfigManager = ({ title, collectionName, items }) => {
     );
 };
 
+const LogoManager = () => {
+    const { companyProfile } = useContext(ConfigContext);
+    const [logoUrl, setLogoUrl] = useState('');
+    const [feedback, setFeedback] = useState(false);
+
+    useEffect(() => {
+        if (companyProfile) {
+            setLogoUrl(companyProfile.logoUrl || '');
+        }
+    }, [companyProfile]);
+
+    const handleSaveChanges = async () => {
+        if (!window.confirm("Are you sure you want to update the company logo?")) return;
+        const profileDocRef = doc(db, 'config_general', 'companyProfile');
+        try {
+            await setDoc(profileDocRef, { logoUrl: logoUrl }, { merge: true });
+            setFeedback(true);
+            setTimeout(() => setFeedback(false), 2000);
+        } catch (error) {
+            console.error("Error updating logo: ", error);
+            alert("Failed to save logo.");
+        }
+    };
+
+    return (
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg space-y-3">
+            <h3 className="font-semibold flex items-center gap-2"><ImageIcon size={18}/> Company Logo</h3>
+            <input 
+                value={logoUrl} 
+                onChange={(e) => setLogoUrl(e.target.value)} 
+                placeholder="Paste image URL here..." 
+                className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" 
+            />
+            <button onClick={handleSaveChanges} className="w-full flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-4 py-2 rounded-md text-sm">
+                {feedback ? <><Check size={16}/> Saved!</> : 'Save Logo'}
+            </button>
+        </div>
+    );
+};
+
 const AdminNoticeManager = () => {
     const { homePageNotice } = useContext(ConfigContext);
     const [notice, setNotice] = useState({
-        isActive: homePageNotice?.isActive || false,
-        title: homePageNotice?.title || '',
-        message: homePageNotice?.message || '',
-        imageUrl: homePageNotice?.imageUrl || '',
+        isActive: false,
+        title: '',
+        message: '',
+        imageUrl: '',
     });
     const [feedback, setFeedback] = useState(false);
+
+    useEffect(() => {
+        if (homePageNotice) {
+            setNotice(homePageNotice);
+        }
+    }, [homePageNotice]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -94,6 +141,7 @@ const AdminNoticeManager = () => {
     };
 
     const handleSaveChanges = async () => {
+        if (!window.confirm("Are you sure you want to save the notice?")) return;
         const noticeDocRef = doc(db, 'config_general', 'homePageNotice');
         try {
             await setDoc(noticeDocRef, notice);
@@ -189,6 +237,9 @@ const AdminPanel = () => {
                     <ConfigManager title="Incident Types" collectionName="config_incident_types" items={incidentTypesConfig} />
                     <div className="md:col-span-2 lg:col-span-3">
                         <AssignSections />
+                    </div>
+                     <div className="md:col-span-2 lg:col-span-3">
+                        <LogoManager />
                     </div>
                      <div className="md:col-span-2 lg:col-span-3">
                         <AdminNoticeManager />

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, onSnapshot, query, orderBy, doc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc } from 'firebase/firestore';
 
 export const ConfigContext = createContext();
 
@@ -8,49 +8,55 @@ export const ConfigProvider = ({ children }) => {
     const [minesConfig, setMinesConfig] = useState([]);
     const [sectionsConfig, setSectionsConfig] = useState([]);
     const [incidentTypesConfig, setIncidentTypesConfig] = useState([]);
-    const [homePageNotice, setHomePageNotice] = useState(null);
+    const [companyProfile, setCompanyProfile] = useState({ logoUrl: '' }); // <-- Add state for logo
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const collectionsToFetch = [
-            { name: 'config_mines', setter: setMinesConfig },
-            { name: 'config_sections', setter: setSectionsConfig },
-            { name: 'config_incident_types', setter: setIncidentTypesConfig },
+        const collectionsToWatch = [
+            { setter: setMinesConfig, name: 'config_mines' },
+            { setter: setSectionsConfig, name: 'config_sections' },
+            { setter: setIncidentTypesConfig, name: 'config_incident_types' },
         ];
 
-        // 1. Perform an initial, one-time fetch to guarantee data is available.
-        Promise.all(
-            collectionsToFetch.map(c => getDocs(query(collection(db, c.name))))
-        ).then(snapshots => {
-            // 2. Use the results of the fetch to set the initial state.
-            snapshots.forEach((snapshot, index) => {
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                collectionsToFetch[index].setter(data);
-            });
-            // 3. ONLY NOW, after the data is loaded and set, remove the loading screen.
-            setLoading(false);
-        }).catch(err => {
-            console.error("Critical config load failed:", err);
-            setError("Failed to load essential application data. Please check your Firestore rules and collection names.");
-            setLoading(false);
-        });
+        let loadedCount = 0;
+        const totalCollections = collectionsToWatch.length;
 
-        // 4. ALSO, set up snapshot listeners for real-time updates.
-        const unsubs = collectionsToFetch.map(({ setter, name }) => {
-            return onSnapshot(query(collection(db, name), orderBy('name')), snapshot => {
-                setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            });
+        const unsubs = collectionsToWatch.map(({ setter, name }) => {
+            return onSnapshot(query(collection(db, name), orderBy('name')),
+                (snapshot) => {
+                    if (!snapshot.metadata.hasPendingWrites) {
+                        setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                        loadedCount++;
+                        if (loadedCount === totalCollections) {
+                            setLoading(false);
+                        }
+                    }
+                },
+                (err) => {
+                    console.error(`Error fetching ${name}:`, err);
+                    setError(`Failed to load configuration: ${name}.`);
+                    setLoading(false);
+                }
+            );
         });
         
-        const noticeDocRef = doc(db, 'config_general', 'homePageNotice');
-        const unsubNotice = onSnapshot(noticeDocRef, (doc) => {
-            setHomePageNotice(doc.exists() ? doc.data() : null);
+        // Listener for the company profile (which includes the logo)
+        const profileDocRef = doc(db, 'config_general', 'companyProfile');
+        const unsubProfile = onSnapshot(profileDocRef, (doc) => {
+            setCompanyProfile(doc.exists() ? doc.data() : { logoUrl: '' });
         });
+
+        const timeoutId = setTimeout(() => {
+            if (loading) {
+                setLoading(false);
+            }
+        }, 10000);
 
         return () => {
             unsubs.forEach(unsub => unsub());
-            unsubNotice();
+            unsubProfile();
+            clearTimeout(timeoutId);
         };
     }, []);
 
@@ -78,7 +84,7 @@ export const ConfigProvider = ({ children }) => {
         minesConfig,
         sectionsConfig,
         incidentTypesConfig,
-        homePageNotice,
+        companyProfile, // <-- Provide company profile
         MINES: minesConfig.filter(m => m.isActive).map(m => m.name),
         SECTIONS: sectionsConfig.filter(s => s.isActive).map(s => s.name),
         INCIDENT_TYPES: incidentTypesConfig.filter(it => it.isActive).map(it => it.name),

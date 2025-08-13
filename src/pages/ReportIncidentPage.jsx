@@ -3,11 +3,12 @@ import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { ChevronRight, FileText, Download, CheckCircle, Upload, X, UserPlus, Trash2, Check } from 'lucide-react';
 import IncidentReportPDF from '../components/IncidentReportPDF';
+import CustomSelect from '../components/CustomSelect';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const ReportIncidentPage = () => {
-    const { user, addIncident, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
+    const { user, addIncident, currentDate, updateUserLastSelectedMine, getUserLastSelectedMine } = useContext(AppContext);
     const { minesConfig, sectionsConfig, INCIDENT_TYPES } = useContext(ConfigContext);
     
     const [step, setStep] = useState(1);
@@ -23,8 +24,8 @@ const ReportIncidentPage = () => {
         mine: lastSelectedMine || (activeMines.length > 0 ? activeMines[0].name : ''),
         sectionName: '',
         otherSection: '',
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toTimeString().slice(0, 5),
+        date: new Date(currentDate).toISOString().split('T')[0],
+        time: new Date(currentDate).toTimeString().slice(0, 5),
         type: INCIDENT_TYPES.length > 0 ? INCIDENT_TYPES[0] : 'First Aid',
         location: '',
         description: '',
@@ -134,18 +135,24 @@ const ReportIncidentPage = () => {
             <div className="bg-light-card dark:bg-dark-card p-4 sm:p-6 rounded-lg shadow-md">
                 {step === 1 && (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pb-24">
                             <FormField label="Reporter Name"><input type="text" value={formData.reporterName} readOnly className="w-full bg-slate-200 dark:bg-slate-800 p-2 rounded-md text-sm cursor-not-allowed" /></FormField>
-                            <FormField label="Incident Type"><select name="type" value={formData.type} onChange={handleInputChange} className={inputClass}>{INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></FormField>
-                            <FormField label="Mine"><select name="mine" value={formData.mine} onChange={handleInputChange} className={inputClass}>{activeMines.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select></FormField>
-                            <FormField label="Section"><select name="sectionName" value={formData.sectionName} onChange={handleInputChange} className={inputClass} disabled={availableSections.length === 0}>{availableSections.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></FormField>
+                            <FormField label="Incident Type">
+                                <CustomSelect name="type" value={formData.type} onChange={handleInputChange} options={INCIDENT_TYPES} />
+                            </FormField>
+                            <FormField label="Mine">
+                                <CustomSelect name="mine" value={formData.mine} onChange={handleInputChange} options={activeMines.map(m => m.name)} />
+                            </FormField>
+                            <FormField label="Section">
+                                <CustomSelect name="sectionName" value={formData.sectionName} onChange={handleInputChange} options={availableSections.map(s => s.name)} disabled={availableSections.length === 0} />
+                            </FormField>
                             {formData.sectionName === 'Other' && <div className="col-span-2"><FormField label="Other Section Name"><input type="text" name="otherSection" value={formData.otherSection} onChange={handleInputChange} className={inputClass} required /></FormField></div>}
                             <FormField label="Date"><input type="date" name="date" value={formData.date} onChange={handleInputChange} className={inputClass} /></FormField>
                             <FormField label="Time"><input type="time" name="time" value={formData.time} onChange={handleInputChange} className={inputClass} /></FormField>
                             <div className="col-span-2"><FormField label="Location"><input type="text" name="location" value={formData.location} onChange={handleInputChange} className={inputClass} required /></FormField></div>
                             <div className="col-span-2"><FormField label="Description"><textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className={inputClass} required></textarea></FormField></div>
                         </div>
-
+                        
                         <div className="col-span-2 border-t pt-4">
                             <h3 className="font-semibold mb-2 text-base">Victim Details {isVictimInfoRequired ? '(Required)' : '(Optional)'}</h3>
                             <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
@@ -175,15 +182,12 @@ const ReportIncidentPage = () => {
                                 </div>
                             ))}
                         </div>
-                        
-                        <div className="col-span-2 border-t pt-4 space-y-3">
-                            <FormField label="Cause of Incident (Optional)"><textarea name="incidentCause" value={formData.incidentCause} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
-                            <FormField label="Immediate Action Taken (Optional)"><textarea name="immediateAction" value={formData.immediateAction} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
-                            <FormField label="Upload Photos"><label className="cursor-pointer bg-light-secondary hover:bg-light-secondary/90 text-white font-semibold px-3 py-2 rounded-md text-sm flex items-center gap-2 w-max"><Upload size={14} /><span>Choose Files</span><input type="file" multiple onChange={handlePhotoUpload} className="hidden" accept="image/*" /></label></FormField>
-                            {formData.photos.length > 0 && <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">{formData.photos.map((photo, index) => (<div key={index} className="relative"><img src={photo.url} alt={photo.name} className="w-full h-20 object-cover rounded-md" /><button onClick={() => removePhoto(index)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button></div>))}</div>}
-                        </div>
 
-                        <div className="mt-6 text-right border-t pt-4"><button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white dark:text-slate-900 font-semibold px-4 py-2 rounded-md flex items-center gap-2 float-right text-sm"><ChevronRight size={16} /><span>Next: Preview</span></button></div>
+                        <div className="mt-6 text-right border-t pt-4">
+                            <button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-4 py-2 rounded-md flex items-center gap-2 float-right text-sm">
+                                <ChevronRight size={16} /><span>Next: Preview</span>
+                            </button>
+                        </div>
                     </form>
                 )}
                 {step === 2 && (<div><h3 className="text-lg font-semibold mb-4 text-center">Preview Report</h3><div className="border border-slate-200 dark:border-slate-600 rounded-lg"><IncidentReportPDF incident={formData} isPreview={true} /></div><div className="mt-6 flex justify-between"><button onClick={() => setStep(1)} className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 font-semibold px-4 py-2 rounded-md text-sm">Back to Edit</button><button onClick={handleSubmit} className="bg-light-primary hover:bg-light-primary/90 text-white dark:text-slate-900 font-semibold px-4 py-2 rounded-md flex items-center gap-2 text-sm"><FileText size={16} /><span>Submit Report</span></button></div></div>)}

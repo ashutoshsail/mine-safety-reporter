@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { AppContext, ACCIDENT_TYPES } from '../context/AppContext'; // Import ACCIDENT_TYPES
+import { AppContext, ACCIDENT_TYPES } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
@@ -71,7 +71,7 @@ const HomePage = () => {
             setLoadingSubmissions(false);
         };
         fetchSubmissions();
-    }, [selectedDate]);
+    }, [selectedDate, incidents]); // Re-fetch when incidents change to update status
 
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     
@@ -112,13 +112,21 @@ const HomePage = () => {
         setAccidentModalData({ isOpen: true, mine: mineName, incidents: dailyIncidents });
     };
 
-    const TabButton = ({ tabName, label, count, color }) => (
+    const TabButton = ({ tabName, label, count, colorClasses }) => (
         <button 
             onClick={() => setActiveTab(tabName)} 
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold transition-colors whitespace-nowrap ${activeTab === tabName ? `border-b-2 ${color} ${color.replace('border', 'text')}` : 'text-light-subtle-text dark:text-dark-subtle-text'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 text-sm font-semibold transition-colors rounded-full ${
+                activeTab === tabName 
+                ? `${colorClasses.activeBg} text-white` 
+                : `border ${colorClasses.border} ${colorClasses.text} hover:bg-slate-100 dark:hover:bg-slate-700`
+            }`}
         >
             <span>{label}</span>
-            <span className={`flex items-center justify-center w-5 h-5 text-xs rounded-full text-light-text dark:text-dark-text ${activeTab === tabName ? `${color.replace('border', 'bg')}/30` : 'bg-slate-200 dark:bg-slate-700'}`}>
+            <span className={`flex items-center justify-center w-5 h-5 text-xs rounded-full ${
+                activeTab === tabName 
+                ? 'bg-white/30 text-white' 
+                : 'bg-slate-200 dark:bg-slate-700 text-light-text dark:text-dark-text'
+            }`}>
                 {count}
             </span>
         </button>
@@ -150,10 +158,10 @@ const HomePage = () => {
                     />
                 </div>
                 <div className="border-b border-slate-200 dark:border-slate-600 mb-3 overflow-x-auto">
-                    <div className="flex w-max">
-                        <TabButton tabName="no-submission" label="No Submission" count={noSubmissionMines.length} color="border-red-500" />
-                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} color="border-green-500" />
-                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} color="border-yellow-500" />
+                    <div className="flex w-max gap-2 p-1">
+                        <TabButton tabName="no-submission" label="No Submission" count={noSubmissionMines.length} colorClasses={{border: 'border-red-500', text: 'text-red-500', activeBg: 'bg-red-500'}} />
+                        <TabButton tabName="accident" label="Accident" count={accidentMines.length} colorClasses={{border: 'border-yellow-500', text: 'text-yellow-500', activeBg: 'bg-yellow-500'}} />
+                        <TabButton tabName="no-accident" label="No Accident" count={noAccidentMines.length} colorClasses={{border: 'border-green-500', text: 'text-green-500', activeBg: 'bg-green-500'}} />
                     </div>
                 </div>
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (

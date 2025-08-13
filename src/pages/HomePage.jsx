@@ -81,14 +81,17 @@ const HomePage = () => {
     }, [selectedDate, incidents]);
 
     useEffect(() => {
-        const activeTabRef = tabRefs[activeTab].current;
-        if (activeTabRef) {
-            setSliderStyle({
-                left: `${activeTabRef.offsetLeft}px`,
-                width: `${activeTabRef.offsetWidth}px`,
-            });
-        }
-    }, [activeTab, tabRefs]);
+        const timer = setTimeout(() => {
+            const activeTabRef = tabRefs[activeTab].current;
+            if (activeTabRef) {
+                setSliderStyle({
+                    left: `${activeTabRef.offsetLeft}px`,
+                    width: `${activeTabRef.offsetWidth}px`,
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [activeTab, tabRefs, MINES]);
 
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     
@@ -130,9 +133,9 @@ const HomePage = () => {
     };
 
     const tabData = {
-        'no-submission': { count: noSubmissionMines.length, color: 'bg-light-status-danger' },
-        'accident': { count: accidentMines.length, color: 'bg-light-status-warning' },
-        'no-accident': { count: noAccidentMines.length, color: 'bg-light-status-success' },
+        'no-submission': { color: 'bg-light-status-danger' },
+        'accident': { color: 'bg-light-status-warning' },
+        'no-accident': { color: 'bg-light-status-success' },
     };
 
     return (
@@ -160,14 +163,20 @@ const HomePage = () => {
                     />
                 </div>
                 
-                <div className="relative flex w-full bg-slate-200 dark:bg-slate-700 rounded-full p-1">
+                <div className="relative flex w-full bg-slate-200 dark:bg-slate-700 rounded-full">
                     <div 
-                        className={`absolute top-1 bottom-1 rounded-full transition-all duration-300 ease-in-out ${tabData[activeTab].color}`}
+                        className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ease-in-out ${tabData[activeTab].color}`}
                         style={sliderStyle}
                     ></div>
-                    <button ref={tabRefs['no-submission']} onClick={() => setActiveTab('no-submission')} className={`flex-1 relative z-10 py-1 px-2 text-xs font-bold transition-colors ${activeTab === 'no-submission' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>No Report ({noSubmissionMines.length})</button>
-                    <button ref={tabRefs['accident']} onClick={() => setActiveTab('accident')} className={`flex-1 relative z-10 py-1 px-2 text-xs font-bold transition-colors ${activeTab === 'accident' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Accident ({accidentMines.length})</button>
-                    <button ref={tabRefs['no-accident']} onClick={() => setActiveTab('no-accident')} className={`flex-1 relative z-10 py-1 px-2 text-xs font-bold transition-colors ${activeTab === 'no-accident' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>No Accident ({noAccidentMines.length})</button>
+                    <button ref={tabRefs['no-submission']} onClick={() => setActiveTab('no-submission')} className={`flex-1 relative z-10 py-2 px-2 text-xs font-bold transition-colors flex flex-col sm:flex-row items-center justify-center gap-1 ${activeTab === 'no-submission' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                        <span className="sm:hidden">No Report</span><span className="hidden sm:inline">No Submission</span> <span>({noSubmissionMines.length})</span>
+                    </button>
+                    <button ref={tabRefs['accident']} onClick={() => setActiveTab('accident')} className={`flex-1 relative z-10 py-2 px-2 text-xs font-bold transition-colors flex flex-col sm:flex-row items-center justify-center gap-1 ${activeTab === 'accident' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                        <span>Accident</span> <span>({accidentMines.length})</span>
+                    </button>
+                    <button ref={tabRefs['no-accident']} onClick={() => setActiveTab('no-accident')} className={`flex-1 relative z-10 py-2 px-2 text-xs font-bold transition-colors flex flex-col sm:flex-row items-center justify-center gap-1 ${activeTab === 'no-accident' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                        <span>No Accident</span> <span>({noAccidentMines.length})</span>
+                    </button>
                 </div>
 
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (
@@ -180,7 +189,7 @@ const HomePage = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md relative">
                     <h2 className="text-base font-semibold mb-1">Report 'No Accident'</h2>
                     <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text mb-3">Submit a "No Accident" report for the date selected above.</p>
                     <form onSubmit={handleNoAccidentSubmit} className="flex gap-2">
@@ -197,14 +206,15 @@ const HomePage = () => {
                         </button>
                     </form>
                     {submissionMessage && <p className="text-green-600 dark:text-green-400 text-sm mt-2">{submissionMessage}</p>}
+                    <CheckCircle className="absolute top-4 right-4 text-green-700 dark:text-green-400 size-10" />
                 </div>
 
-                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex items-start gap-3">
-                    <div>
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md relative">
+                    <div className="pr-12">
                         <h2 className="text-base font-semibold mb-0.5">Safety Tip of the Day</h2>
                         <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{dailyTip}</p>
                     </div>
-                    <Lightbulb className="text-yellow-400 flex-shrink-0" size={32} />
+                    <Lightbulb className="absolute top-4 right-4 text-amber-700 dark:text-amber-400 size-10" />
                 </div>
             </div>
 

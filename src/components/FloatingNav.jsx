@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useContext, memo } from 'react';
 import { AppContext } from '../context/AppContext';
-import { Home, FileText, List, X, Menu, Settings, ShieldCheck } from 'lucide-react';
+import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, X, Menu, ShieldCheck } from 'lucide-react';
 
 const baseNavItems = [
   { id: 'home', icon: Home, label: 'Home' },
   { id: 'report', icon: FileText, label: 'Report Incident' },
   { id: 'log', icon: List, label: 'Incident Log' },
+  { id: 'analytics', icon: BarChart2, label: 'Dashboard' },
+  { id: 'comparison', icon: GitCompareArrows, label: 'Comparison' },
 ];
 
 const FloatingNav = memo(({ setRoute, currentRoute }) => {
@@ -39,7 +41,7 @@ const FloatingNav = memo(({ setRoute, currentRoute }) => {
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setIsOpen(false)}></div>}
+      {isOpen && <div className="fixed inset-0 bg-black/40 dark:bg-white/10 z-40 lg:hidden" onClick={() => setIsOpen(false)}></div>}
       <div ref={navRef} className="fixed bottom-4 right-4 z-50 lg:hidden">
         <div className="relative h-16">
           <div className={`absolute bottom-20 right-0 transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>

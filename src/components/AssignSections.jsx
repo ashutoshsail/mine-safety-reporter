@@ -7,7 +7,6 @@ import { Check } from 'lucide-react';
 const AssignSections = () => {
     const { minesConfig, sectionsConfig } = useContext(ConfigContext);
     const [selectedMineId, setSelectedMineId] = useState('');
-    // State for the currently checked items in the UI
     const [currentAssigned, setCurrentAssigned] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -15,7 +14,6 @@ const AssignSections = () => {
         minesConfig.find(m => m.id === selectedMineId), 
     [selectedMineId, minesConfig]);
 
-    // This effect now correctly resets the UI state whenever a new mine is selected
     useEffect(() => {
         setCurrentAssigned(selectedMine?.assignedSections || []);
     }, [selectedMine]);
@@ -33,8 +31,6 @@ const AssignSections = () => {
         setIsSaving(true);
         const mineDocRef = doc(db, 'config_mines', selectedMineId);
         try {
-            // This update to the database will be picked up by the ConfigContext listener,
-            // which will then provide the updated minesConfig to the whole app.
             await updateDoc(mineDocRef, {
                 assignedSections: currentAssigned
             });
@@ -45,16 +41,23 @@ const AssignSections = () => {
         setIsSaving(false);
     };
 
-    // This logic now correctly compares the UI state to the database state
     const hasUnsavedChanges = useMemo(() => {
         if (!selectedMine) return false;
         const saved = selectedMine.assignedSections || [];
-        // Compare sorted arrays to ensure order doesn't matter
         return JSON.stringify(currentAssigned.sort()) !== JSON.stringify(saved.sort());
     }, [currentAssigned, selectedMine]);
 
     return (
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+            {/* --- TROUBLESHOOTING --- */}
+            <div className="bg-yellow-100 text-yellow-800 p-2 rounded-md text-xs mb-2 font-mono">
+                <p className="font-bold">[DEBUG: AssignSections State]</p>
+                <p><strong>Selected Mine:</strong> {selectedMine?.name || 'None'}</p>
+                <p><strong>Saved Sections (from DB):</strong> {JSON.stringify(selectedMine?.assignedSections?.sort() || [])}</p>
+                <p><strong>Current UI Sections:</strong> {JSON.stringify(currentAssigned.sort() || [])}</p>
+                <p><strong>Has Unsaved Changes:</strong> {hasUnsavedChanges.toString()}</p>
+            </div>
+            {/* --- END TROUBLESHOOTING --- */}
             <h3 className="font-semibold mb-2">Assign Sections to Mines</h3>
             <div className="space-y-3">
                 <select 

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CRITICAL FIX: Prevent the main page from scrolling */
+html, body {
+    overflow: hidden;
+}
+
 /* Custom scrollbar for better aesthetics */
 ::-webkit-scrollbar {
     width: 8px;

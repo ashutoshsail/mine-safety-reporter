@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
+import { AppContext, ACCIDENT_TYPES } from '../context/AppContext'; // Import ACCIDENT_TYPES
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb, X, ShieldCheck } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Send, Lightbulb, X } from 'lucide-react';
+import IncidentReportPDF from '../components/IncidentReportPDF';
 
 const safetyTips = [
     "Always wear your Personal Protective Equipment (PPE) in designated areas.",
@@ -50,7 +51,9 @@ const HomePage = () => {
     const [submissionMessage, setSubmissionMessage] = useState('');
     const [activeTab, setActiveTab] = useState('no-submission');
     const [dailyTip] = useState(safetyTips[new Date().getDate() % safetyTips.length]);
-    const [modalData, setModalData] = useState(null);
+    const [submissionModalData, setSubmissionModalData] = useState(null);
+    const [accidentModalData, setAccidentModalData] = useState({ isOpen: false, mine: '', incidents: [] });
+    const [previewIncident, setPreviewIncident] = useState(null);
 
     useEffect(() => {
         if (MINES && MINES.length > 0 && !selectedMine) {
@@ -71,15 +74,22 @@ const HomePage = () => {
     }, [selectedDate]);
 
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-    const minesWithAccident = new Set(
-        incidents
-            .filter(inc => inc.date === selectedDateStr && inc.type === 'Lost Time Injury (LTI)')
-            .map(inc => inc.mine)
-    );
+    
+    const minesWithAccident = useMemo(() => {
+        const mines = new Set();
+        if (incidents) {
+            incidents.forEach(inc => {
+                if (inc.date === selectedDateStr && ACCIDENT_TYPES.includes(inc.type)) {
+                    mines.add(inc.mine);
+                }
+            });
+        }
+        return Array.from(mines);
+    }, [incidents, selectedDateStr]);
 
-    const noAccidentMines = MINES.filter(mine => submissionsForDate[mine]?.status === 'No Accident' && !minesWithAccident.has(mine));
-    const accidentMines = MINES.filter(mine => minesWithAccident.has(mine));
-    const noSubmissionMines = MINES.filter(mine => !submissionsForDate[mine] && !minesWithAccident.has(mine));
+    const noAccidentMines = MINES.filter(mine => submissionsForDate[mine]?.status === 'No Accident' && !minesWithAccident.includes(mine));
+    const accidentMines = MINES.filter(mine => minesWithAccident.includes(mine));
+    const noSubmissionMines = MINES.filter(mine => !submissionsForDate[mine] && !minesWithAccident.includes(mine));
 
     const handleNoAccidentSubmit = async (e) => {
         e.preventDefault();
@@ -87,10 +97,19 @@ const HomePage = () => {
             alert("Please select a mine.");
             return;
         }
+        if (minesWithAccident.includes(selectedMine)) {
+            alert(`Cannot submit 'No Accident' for ${selectedMine} as an accident has already been reported for this date.`);
+            return;
+        }
         await submitNoAccident(selectedMine, selectedDate);
         setSubmissionMessage(`'No Accident' reported for ${selectedMine} on ${format(selectedDate, 'PPP')}.`);
         setSubmissionsForDate(prev => ({...prev, [selectedMine]: {status: 'No Accident', submittedBy: user.name, submittedAt: new Date().toISOString()}}));
         setTimeout(() => setSubmissionMessage(''), 3000);
+    };
+
+    const handleAccidentMineClick = (mineName) => {
+        const dailyIncidents = incidents.filter(inc => inc.mine === mineName && inc.date === selectedDateStr && ACCIDENT_TYPES.includes(inc.type));
+        setAccidentModalData({ isOpen: true, mine: mineName, incidents: dailyIncidents });
     };
 
     const TabButton = ({ tabName, label, count, color }) => (
@@ -140,8 +159,8 @@ const HomePage = () => {
                 {loadingSubmissions ? <p className="text-sm text-center p-4">Loading...</p> : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1">
                         {activeTab === 'no-submission' && noSubmissionMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><XCircle size={14} className="text-red-500 flex-shrink-0" /><span>{mine}</span></div>)}
-                        {activeTab === 'no-accident' && noAccidentMines.map(mine => <div key={mine} onClick={() => setModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-green-500 flex-shrink-0" /><span>{mine}</span></div>)}
-                        {activeTab === 'accident' && accidentMines.map(mine => <div key={mine} className="flex items-center gap-2 p-1.5 rounded text-sm"><AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" /><span>{mine}</span></div>)}
+                        {activeTab === 'no-accident' && noAccidentMines.map(mine => <div key={mine} onClick={() => setSubmissionModalData(submissionsForDate[mine])} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><CheckCircle size={14} className="text-green-500 flex-shrink-0" /><span>{mine}</span></div>)}
+                        {activeTab === 'accident' && accidentMines.map(mine => <div key={mine} onClick={() => handleAccidentMineClick(mine)} className="flex items-center gap-2 p-1.5 rounded text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"><AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" /><span>{mine}</span></div>)}
                     </div>
                 )}
             </div>
@@ -175,17 +194,47 @@ const HomePage = () => {
                 </div>
             </div>
 
-            {modalData && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setModalData(null)}>
+            {submissionModalData && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSubmissionModalData(null)}>
                     <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-sm p-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-semibold">Submission Details</h3>
-                            <button onClick={() => setModalData(null)}><X size={20} /></button>
+                            <button onClick={() => setSubmissionModalData(null)}><X size={20} /></button>
                         </div>
                         <div>
-                            <p className="text-sm"><span className="font-semibold">Submitted By:</span> {modalData.submittedBy}</p>
-                            <p className="text-sm"><span className="font-semibold">Date & Time:</span> {format(parseISO(modalData.submittedAt), 'PPP p')}</p>
+                            <p className="text-sm"><span className="font-semibold">Submitted By:</span> {submissionModalData.submittedBy}</p>
+                            <p className="text-sm"><span className="font-semibold">Date & Time:</span> {format(parseISO(submissionModalData.submittedAt), 'PPP p')}</p>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {accidentModalData.isOpen && (
+                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setAccidentModalData({isOpen: false, mine: '', incidents: []})}>
+                    <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-lg p-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold">Accidents at {accidentModalData.mine}</h3>
+                            <button onClick={() => setAccidentModalData({isOpen: false, mine: '', incidents: []})}><X size={20} /></button>
+                        </div>
+                        <ul className="space-y-2 max-h-96 overflow-y-auto">
+                            {accidentModalData.incidents.map(inc => (
+                                <li key={inc.id} onClick={() => setPreviewIncident(inc)} className="p-2 bg-slate-100 dark:bg-slate-700 rounded-md cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600">
+                                    <p className="font-semibold text-sm">{inc.type}</p>
+                                    <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text">{inc.id}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+
+            {previewIncident && (
+                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={() => setPreviewIncident(null)}>
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-2 text-right">
+                           <button onClick={() => setPreviewIncident(null)} className="p-2 rounded-full hover:bg-slate-100"><X size={20} /></button>
+                        </div>
+                        <IncidentReportPDF incident={previewIncident} isPreview={true} />
                     </div>
                 </div>
             )}

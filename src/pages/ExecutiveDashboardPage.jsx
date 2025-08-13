@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
@@ -24,10 +24,19 @@ const ExecutiveDashboardPage = () => {
     const isSmallScreen = width < 768;
 
     const [period, setPeriod] = useState('Last 3 Months');
-    const [selectedMines, setSelectedMines] = useState(MINES);
-    const [selectedTypes, setSelectedTypes] = useState(INCIDENT_TYPES);
+    const [selectedMines, setSelectedMines] = useState([]);
+    const [selectedTypes, setSelectedTypes] = useState([]);
     const [pieChartMineIndex, setPieChartMineIndex] = useState(0);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    
+    useEffect(() => {
+        if (MINES) {
+            setSelectedMines(MINES);
+        }
+        if (INCIDENT_TYPES) {
+            setSelectedTypes(INCIDENT_TYPES);
+        }
+    }, [MINES, INCIDENT_TYPES]);
 
     const periodOptions = ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'];
 
@@ -41,8 +50,8 @@ const ExecutiveDashboardPage = () => {
         return incidents.filter(inc => {
             const incDate = new Date(inc.date);
             return incDate >= dateFrom &&
-                   selectedMines.includes(inc.mine) &&
-                   selectedTypes.includes(inc.type);
+                   (selectedMines.length > 0 ? selectedMines.includes(inc.mine) : true) &&
+                   (selectedTypes.length > 0 ? selectedTypes.includes(inc.type) : true);
         });
     }, [incidents, period, selectedMines, selectedTypes]);
     
@@ -90,8 +99,16 @@ const ExecutiveDashboardPage = () => {
 
     const handleMineToggle = (mine) => setSelectedMines(prev => prev.includes(mine) ? prev.filter(m => m !== mine) : [...prev, mine]);
     const handleTypeToggle = (type) => setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
-    const nextMine = () => setPieChartMineIndex(prev => (prev + 1) % selectedMines.length);
-    const prevMine = () => setPieChartMineIndex(prev => (prev - 1 + selectedMines.length) % selectedMines.length);
+    
+    const nextMine = () => {
+        if (selectedMines.length === 0) return; // Safety check
+        setPieChartMineIndex(prev => (prev + 1) % selectedMines.length);
+    };
+    const prevMine = () => {
+        if (selectedMines.length === 0) return; // Safety check
+        setPieChartMineIndex(prev => (prev - 1 + selectedMines.length) % selectedMines.length);
+    };
+
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (

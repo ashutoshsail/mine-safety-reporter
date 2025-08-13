@@ -1,7 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
-import { ChevronDown, ChevronUp, Clock, Calendar, Paperclip, Send, Download, History, X } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { ConfigContext } from '../context/ConfigContext';
+import { ChevronDown, ChevronUp, Clock, Calendar, History, X, Send, ArrowDownUp, Filter } from 'lucide-react';
+import { format, parseISO, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 
 const mineColors = {
     "DMM": "border-blue-500", "JMM": "border-green-500", "RMM": "border-red-500", 
@@ -10,10 +11,13 @@ const mineColors = {
     "Koteshwar": "border-cyan-500"
 };
 
+const COMMENT_TAGS = ["Enquiry Report", "Measures Suggested", "Action Taken"];
+
 const IncidentCard = ({ incident }) => {
     const { updateIncident, addComment } = useContext(AppContext);
     const [isExpanded, setIsExpanded] = useState(false);
     const [commentText, setCommentText] = useState('');
+    const [selectedTags, setSelectedTags] = useState([]);
     const [mandays, setMandays] = useState(incident.mandaysLost || '');
     const [showHistory, setShowHistory] = useState(false);
 
@@ -22,16 +26,19 @@ const IncidentCard = ({ incident }) => {
         updateIncident(incident.docId, { status: newStatus });
     };
 
+    const handleTagToggle = (tag) => {
+        setSelectedTags(prev => 
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+        );
+    };
+
     const handleCommentSubmit = (e) => {
         e.preventDefault();
         if (commentText.trim()) {
-            addComment(incident.docId, commentText);
+            addComment(incident.docId, commentText, selectedTags);
             setCommentText('');
+            setSelectedTags([]);
         }
-    };
-
-    const handleMandaysChange = (e) => {
-        setMandays(e.target.value);
     };
 
     const handleMandaysBlur = () => {
@@ -76,7 +83,7 @@ const IncidentCard = ({ incident }) => {
                         {incident.type === 'Lost Time Injury (LTI)' && (
                             <div className="flex items-center gap-2">
                                 <label className="text-xs font-semibold">Mandays Lost:</label>
-                                <input type="number" value={mandays} onChange={handleMandaysChange} onBlur={handleMandaysBlur} className="w-16 bg-slate-100 dark:bg-slate-700 p-1 rounded-md border border-slate-300 dark:border-slate-600 text-sm" />
+                                <input type="number" value={mandays} onChange={(e) => setMandays(e.target.value)} onBlur={handleMandaysBlur} className="w-16 bg-slate-100 dark:bg-slate-700 p-1 rounded-md border border-slate-300 dark:border-slate-600 text-sm" />
                             </div>
                         )}
                     </div>
@@ -84,17 +91,38 @@ const IncidentCard = ({ incident }) => {
                     <div>
                         <h4 className="font-semibold mb-1 text-sm">Comments</h4>
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-2 mb-2">
-                            {incident.comments.map((comment, index) => (
+                            {(incident.comments || []).map((comment, index) => (
                                 <div key={index} className="bg-slate-100 dark:bg-slate-800 p-2 rounded-md text-sm">
+                                    {comment.tags && comment.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                            {comment.tags.map(tag => (
+                                                <span key={tag} className="text-xs bg-light-accent/20 text-light-accent dark:bg-dark-accent/30 dark:text-dark-accent px-1.5 py-0.5 rounded-full">{tag}</span>
+                                            ))}
+                                        </div>
+                                    )}
                                     <p>{comment.text}</p>
                                     <p className="text-xs text-right text-slate-400 dark:text-slate-500 mt-1">- {comment.user} on {format(parseISO(comment.timestamp), 'MMM d, h:mm a')}</p>
                                 </div>
                             ))}
-                            {incident.comments.length === 0 && <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">No comments yet.</p>}
+                            {(incident.comments || []).length === 0 && <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">No comments yet.</p>}
                         </div>
-                        <form onSubmit={handleCommentSubmit} className="flex gap-2">
-                            <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="flex-grow bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm" />
-                            <button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white dark:text-slate-900 p-2 rounded-md"><Send size={18} /></button>
+                        <form onSubmit={handleCommentSubmit} className="space-y-2">
+                             <div className="flex flex-wrap gap-2">
+                                {COMMENT_TAGS.map(tag => (
+                                    <button
+                                        type="button"
+                                        key={tag}
+                                        onClick={() => handleTagToggle(tag)}
+                                        className={`text-xs px-2 py-1 rounded-full border transition-colors ${selectedTags.includes(tag) ? 'bg-light-accent text-white border-light-accent' : 'bg-slate-200 dark:bg-slate-700 border-transparent'}`}
+                                    >
+                                        {tag}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="flex-grow bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-slate-300 dark:border-slate-600 text-sm" />
+                                <button type="submit" className="bg-light-primary hover:bg-light-primary/90 text-white dark:text-slate-900 p-2 rounded-md"><Send size={18} /></button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -113,16 +141,217 @@ const IncidentCard = ({ incident }) => {
 
 const IncidentLogPage = () => {
     const { incidents } = useContext(AppContext);
+    const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
+
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    
+    // Filters State
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+    const [filters, setFilters] = useState({
+        status: [],
+        type: [],
+        mine: [],
+        dateRange: { start: null, end: null },
+        period: 'All Time'
+    });
+
+    const filteredAndSortedIncidents = useMemo(() => {
+        let filtered = [...incidents];
+
+        // Apply filters
+        if (filters.status.length > 0) {
+            filtered = filtered.filter(inc => filters.status.includes(inc.status));
+        }
+        if (filters.type.length > 0) {
+            filtered = filtered.filter(inc => filters.type.includes(inc.type));
+        }
+        if (filters.mine.length > 0) {
+            filtered = filtered.filter(inc => filters.mine.includes(inc.mine));
+        }
+        if (filters.dateRange.start && filters.dateRange.end) {
+            filtered = filtered.filter(inc => {
+                const incDate = new Date(inc.date);
+                return incDate >= filters.dateRange.start && incDate <= filters.dateRange.end;
+            });
+        }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            if (sortConfig.key === 'date') {
+                const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+                const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+                return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+            }
+            if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        return filtered;
+    }, [incidents, filters, sortConfig]);
+    
+    const activeFilterCount = Object.values(filters).filter(f => Array.isArray(f) ? f.length > 0 : f.start).length;
+
     return (
         <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold mb-4">Incident Log</h1>
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl sm:text-3xl font-semibold">Incident Log</h1>
+            </div>
+
+            <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md mb-4">
+                <button 
+                    onClick={() => setIsFilterOpen(true)}
+                    className="w-full flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-700 rounded-md"
+                >
+                    <div className="flex items-center gap-2">
+                        <Filter size={16} className="text-light-accent" />
+                        <span className="font-semibold text-sm">Filter & Sort</span>
+                        {activeFilterCount > 0 && (
+                            <span className="bg-light-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">{activeFilterCount}</span>
+                        )}
+                    </div>
+                    <ChevronDown size={20} />
+                </button>
+            </div>
+
             <div className="space-y-3">
-                {incidents.map(incident => (
-                    <IncidentCard key={incident.id} incident={incident} />
+                {filteredAndSortedIncidents.map(incident => (
+                    <IncidentCard key={incident.docId} incident={incident} />
                 ))}
+            </div>
+            
+            {isFilterOpen && 
+                <FilterPanel 
+                    onClose={() => setIsFilterOpen(false)}
+                    filters={filters}
+                    setFilters={setFilters}
+                    sortConfig={sortConfig}
+                    setSortConfig={setSortConfig}
+                    mines={MINES}
+                    types={INCIDENT_TYPES}
+                />
+            }
+        </div>
+    );
+};
+
+// New Filter Panel Component
+const FilterPanel = ({ onClose, filters, setFilters, sortConfig, setSortConfig, mines, types }) => {
+    const [tempFilters, setTempFilters] = useState(filters);
+    const [tempSort, setTempSort] = useState(sortConfig);
+
+    const handleMultiSelect = (filterKey, value) => {
+        setTempFilters(prev => ({
+            ...prev,
+            [filterKey]: prev[filterKey].includes(value)
+                ? prev[filterKey].filter(item => item !== value)
+                : [...prev[filterKey], value]
+        }));
+    };
+
+    const handleDateRange = (period) => {
+        const today = new Date();
+        let start = null, end = null;
+
+        switch(period) {
+            case 'Today': start = startOfDay(today); end = endOfDay(today); break;
+            case 'Yesterday': start = startOfDay(subDays(today, 1)); end = endOfDay(subDays(today, 1)); break;
+            case 'Last 7 Days': start = startOfDay(subDays(today, 6)); end = endOfDay(today); break;
+            case 'This Month': start = startOfMonth(today); end = endOfDay(today); break;
+            case 'Last Month': start = startOfMonth(subMonths(today, 1)); end = endOfMonth(subMonths(today, 1)); break;
+            case 'Last 3 Months': start = startOfMonth(subMonths(today, 2)); end = endOfDay(today); break;
+            case 'Last 6 Months': start = startOfMonth(subMonths(today, 5)); end = endOfDay(today); break;
+            case 'This Year': start = startOfYear(today); end = endOfDay(today); break;
+            case 'Last Year': start = startOfYear(subMonths(today, 12)); end = endOfYear(subMonths(today, 12)); break;
+            default: start = null; end = null;
+        }
+        setTempFilters(prev => ({...prev, dateRange: {start, end}, period}));
+    };
+    
+    const handleCustomDateChange = (part, value) => {
+        setTempFilters(prev => ({
+            ...prev,
+            dateRange: {...prev.dateRange, [part]: new Date(value)},
+            period: 'Custom'
+        }));
+    };
+
+    const applyChanges = () => {
+        setFilters(tempFilters);
+        setSortConfig(tempSort);
+        onClose();
+    };
+    
+    const resetFilters = () => {
+        const initial = { status: [], type: [], mine: [], dateRange: { start: null, end: null }, period: 'All Time' };
+        setTempFilters(initial);
+        setFilters(initial);
+        setSortConfig({ key: 'date', direction: 'desc' });
+        onClose();
+    };
+
+    const periodFilters = ['Today', 'Yesterday', 'Last 7 Days', 'This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'This Year', 'Last Year'];
+    const sortOptions = [{key: 'date', label: 'Date'}, {key: 'type', label: 'Incident Type'}, {key: 'mine', label: 'Mine'}];
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-start p-4 overflow-y-auto">
+            <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-md my-8">
+                <div className="p-4 border-b flex justify-between items-center">
+                    <h2 className="text-lg font-semibold">Filter & Sort</h2>
+                    <button onClick={onClose}><X size={24} /></button>
+                </div>
+                <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                    {/* Date Filters */}
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-sm">Date Range</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {periodFilters.map(p => (
+                                <button key={p} onClick={() => handleDateRange(p)} className={`text-xs px-2 py-1 rounded-full ${tempFilters.period === p ? 'bg-light-accent text-white' : 'bg-slate-200 dark:bg-slate-700'}`}>{p}</button>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <input type="date" value={tempFilters.dateRange.start ? format(tempFilters.dateRange.start, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('start', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
+                            <input type="date" value={tempFilters.dateRange.end ? format(tempFilters.dateRange.end, 'yyyy-MM-dd') : ''} onChange={e => handleCustomDateChange('end', e.target.value)} className="w-full p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600" />
+                        </div>
+                    </div>
+                    {/* Other Filters */}
+                    <MultiSelectFilter title="Status" options={['Open', 'Closed']} selected={tempFilters.status} onSelect={v => handleMultiSelect('status', v)} />
+                    <MultiSelectFilter title="Mine" options={mines} selected={tempFilters.mine} onSelect={v => handleMultiSelect('mine', v)} />
+                    <MultiSelectFilter title="Incident Type" options={types} selected={tempFilters.type} onSelect={v => handleMultiSelect('type', v)} />
+                    {/* Sorting */}
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-sm">Sort By</h3>
+                        <div className="flex gap-2">
+                            <select value={tempSort.key} onChange={e => setTempSort({...tempSort, key: e.target.value})} className="flex-grow p-2 text-sm rounded-md border dark:bg-dark-card dark:border-slate-600">
+                                {sortOptions.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
+                            </select>
+                            <button onClick={() => setTempSort({...tempSort, direction: tempSort.direction === 'asc' ? 'desc' : 'asc'})} className="p-2 rounded-md border dark:border-slate-600">
+                                <ArrowDownUp size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4 border-t flex justify-between">
+                    <button onClick={resetFilters} className="text-sm font-semibold text-slate-500">Reset</button>
+                    <button onClick={applyChanges} className="text-sm font-semibold bg-light-accent text-white px-4 py-2 rounded-md">Apply Filters</button>
+                </div>
             </div>
         </div>
     );
 };
+
+const MultiSelectFilter = ({ title, options, selected, onSelect }) => (
+    <div className="space-y-2">
+        <h3 className="font-semibold text-sm">{title}</h3>
+        <div className="max-h-32 overflow-y-auto space-y-1 p-2 border rounded-md dark:border-slate-600">
+            {options.map(option => (
+                <label key={option} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={selected.includes(option)} onChange={() => onSelect(option)} className="h-4 w-4 rounded text-light-accent focus:ring-light-accent" />
+                    <span className="text-sm">{option}</span>
+                </label>
+            ))}
+        </div>
+    </div>
+);
 
 export default IncidentLogPage;

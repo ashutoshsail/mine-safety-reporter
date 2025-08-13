@@ -1,9 +1,10 @@
-import React, { useState, useContext, useCallback } from 'react'; // Import useCallback
+import React, { useState, useContext, useCallback, useRef } from 'react';
 import { AppContext } from './context/AppContext';
 import { AuthContext } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import FloatingNav from './components/FloatingNav';
 import BottomNav from './components/BottomNav';
+import BackToTopButton from './components/BackToTopButton';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import ReportIncidentPage from './pages/ReportIncidentPage';
@@ -12,6 +13,7 @@ import ExecutiveDashboardPage from './pages/ExecutiveDashboardPage';
 import ComparisonPage from './pages/ComparisonPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPanel from './pages/AdminPanel';
+import { Menu, Settings } from 'lucide-react';
 
 const useWindowSize = () => {
     const [width, setWidth] = useState(window.innerWidth);
@@ -38,12 +40,13 @@ const Router = ({ route }) => {
 
 function App() {
   const [route, setRoute] = useState('home');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, navPreference } = useContext(AppContext);
   const { currentUser } = useContext(AuthContext);
   const width = useWindowSize();
   const isLargeScreen = width >= 1024;
+  const mainContentRef = useRef(null);
 
-  // CRITICAL FIX: Memoize the setRoute function so it doesn't cause re-renders
   const handleSetRoute = useCallback((newRoute) => {
     setRoute(newRoute);
   }, []);
@@ -59,8 +62,13 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen font-light text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background`}>
-      <Sidebar setRoute={handleSetRoute} currentRoute={route} />
+    <div className="min-h-screen font-light text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background">
+      <Sidebar 
+        setRoute={handleSetRoute} 
+        currentRoute={route} 
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
       
       {!isLargeScreen && (
         navPreference === 'fab' ? (
@@ -69,10 +77,23 @@ function App() {
           <BottomNav setRoute={handleSetRoute} currentRoute={route} />
         )
       )}
+      
+      <div ref={mainContentRef} className="transition-all duration-300 lg:ml-64 h-screen overflow-y-auto">
+        <header className="lg:hidden h-14 flex items-center justify-between px-4 bg-light-card dark:bg-dark-card border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2">
+            <Menu size={24} />
+          </button>
+          <button onClick={() => handleSetRoute('settings')} className="p-2">
+            <Settings size={20} />
+          </button>
+        </header>
 
-      <main className={`p-3 sm:p-4 transition-all duration-300 ${isLargeScreen ? 'lg:ml-64' : (navPreference === 'bottom' ? 'pb-20' : 'pb-24')}`}>
-        <Router route={route} />
-      </main>
+        <main className={`p-3 sm:p-4 ${!isLargeScreen && navPreference === 'bottom' ? 'pb-20' : 'pb-24'}`}>
+          <Router route={route} />
+        </main>
+      </div>
+
+      <BackToTopButton scrollContainerRef={mainContentRef} />
     </div>
   );
 }

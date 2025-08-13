@@ -8,6 +8,10 @@ import { ConfigContext } from './ConfigContext';
 
 export const AppContext = createContext();
 
+export const ACCIDENT_TYPES = ['Reportable', 'Serious Bodily', 'Fatal', 'Lost Time Injury (LTI)'];
+// Define the available tags for comments
+export const COMMENT_TAGS = ['Enquiry Report', 'Measures Suggested', 'Action Taken'];
+
 export const AppProvider = ({ children }) => {
   const { currentUser } = useContext(AuthContext);
   const { MINES } = useContext(ConfigContext);
@@ -96,6 +100,15 @@ export const AppProvider = ({ children }) => {
       createdAt: serverTimestamp(),
       isDemo: false,
     };
+    
+    if (ACCIDENT_TYPES.includes(newIncident.type)) {
+        const dateStr = format(new Date(newIncident.date), 'yyyy-MM-dd');
+        const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
+        await setDoc(dailySubmissionsDoc, {
+            [newIncident.mine]: { status: 'Accident', submittedAt: new Date().toISOString(), submittedBy: user.name }
+        }, { merge: true });
+    }
+
     const incidentsCollection = collection(db, 'incidents');
     const docRef = await addDoc(incidentsCollection, newIncident);
     return { ...newIncident, docId: docRef.id };
@@ -109,12 +122,17 @@ export const AppProvider = ({ children }) => {
     await updateDoc(incidentDoc, { ...updates, history: newHistory });
   };
 
-  const addComment = async (docId, commentText) => {
+  const addComment = async (docId, commentText, tags) => {
     const incidentDoc = doc(db, 'incidents', docId);
     const incidentToUpdate = incidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
-    const newComment = { user: user.name, text: commentText, timestamp: new Date().toISOString() };
-    const newComments = [...incidentToUpdate.comments, newComment];
+    const newComment = { 
+        user: user.name, 
+        text: commentText, 
+        timestamp: new Date().toISOString(), 
+        tags: tags || [] // Save the tags with the comment
+    };
+    const newComments = [...(incidentToUpdate.comments || []), newComment];
     const newHistory = [...incidentToUpdate.history, { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
     await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
   };
@@ -132,6 +150,7 @@ export const AppProvider = ({ children }) => {
     user, theme, toggleTheme, navPreference, updateNavPreference,
     updateUserLastSelectedMine, getUserLastSelectedMine,
     demoMode, setDemoMode: setDemoModeAndUpdateStorage,
+    COMMENT_TAGS, // Export the tags list
   }), [incidents, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

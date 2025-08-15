@@ -8,7 +8,8 @@ import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
 
 const fullConfig = resolveConfig(tailwindConfig);
-const chartColors = fullConfig.theme.colors.chart;
+// CRITICAL FIX: Corrected the path to the chart colors
+const chartColors = fullConfig.theme.chart; 
 
 const COLORS = Object.values(chartColors);
 
@@ -35,7 +36,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const ExecutiveDashboardPage = () => {
-    const { incidents } = useContext(AppContext);
+    const { incidents, currentDate } = useContext(AppContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     const width = useWindowSize();
     const isSmallScreen = width < 768;
@@ -57,10 +58,19 @@ const ExecutiveDashboardPage = () => {
         }
     }, [selectedMines, pieChartMineIndex]);
 
+    const incidentTypeColorMap = useMemo(() => {
+        const colorKeys = Object.keys(chartColors);
+        return (INCIDENT_TYPES || []).reduce((acc, type, index) => {
+            acc[type] = chartColors[colorKeys[index % colorKeys.length]];
+            return acc;
+        }, {});
+    }, [INCIDENT_TYPES]);
+
     const periodOptions = ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'];
 
     const filteredIncidents = useMemo(() => {
-        let dateFrom = new Date();
+        const baseDate = currentDate ? new Date(currentDate) : new Date();
+        let dateFrom = new Date(baseDate);
         if (period === 'Last 30 Days') dateFrom = subDays(dateFrom, 30);
         if (period === 'Last 3 Months') dateFrom = subMonths(dateFrom, 3);
         if (period === 'Last 6 Months') dateFrom = subMonths(dateFrom, 6);
@@ -68,14 +78,14 @@ const ExecutiveDashboardPage = () => {
 
         return (incidents || []).filter(inc => {
             const incDate = new Date(inc.date);
-            return incDate >= dateFrom &&
-                   (selectedMines.length > 0 ? selectedMines.includes(inc.mine) : false) &&
-                   (selectedTypes.length > 0 ? selectedTypes.includes(inc.type) : false);
+            const mineMatch = selectedMines.length === 0 ? true : selectedMines.includes(inc.mine);
+            const typeMatch = selectedTypes.length === 0 ? true : selectedTypes.includes(inc.type);
+            return incDate >= dateFrom && incDate <= baseDate && mineMatch && typeMatch;
         });
-    }, [incidents, period, selectedMines, selectedTypes]);
+    }, [incidents, period, selectedMines, selectedTypes, currentDate]);
     
     const individualMineData = useMemo(() => {
-        if (selectedMines.length === 0) return { chartData: [], totalIncidents: 0, hasNearMiss: false };
+        if (!selectedMines || selectedMines.length === 0 || !filteredIncidents) return { chartData: [], totalIncidents: 0, hasNearMiss: false };
         const mine = selectedMines[pieChartMineIndex];
         if (!mine) return { chartData: [], totalIncidents: 0, hasNearMiss: false };
         
@@ -85,31 +95,41 @@ const ExecutiveDashboardPage = () => {
             value: mineIncidents.filter(inc => inc.type === type).length
         })).filter(item => item.value > 0);
 
-        const hasNearMiss = data.some(item => item.name === 'Near Miss' && item.value > 0);
+        const hasNearMiss = data.some(item => item.name === 'Near Miss');
         const totalIncidents = data.reduce((sum, item) => sum + item.value, 0);
 
         return { chartData: data, totalIncidents, hasNearMiss };
     }, [filteredIncidents, pieChartMineIndex, selectedMines, INCIDENT_TYPES]);
 
-    const minePerformanceData = useMemo(() => (MINES || []).map(mine => ({ name: mine, Incidents: filteredIncidents.filter(inc => inc.mine === mine).length })), [filteredIncidents, MINES]);
+    const minePerformanceData = useMemo(() => {
+        return (MINES || []).map(mine => {
+            const mineData = { name: mine };
+            (INCIDENT_TYPES || []).forEach(type => {
+                mineData[type] = (filteredIncidents || []).filter(inc => inc.mine === mine && inc.type === type).length;
+            });
+            return mineData;
+        });
+    }, [filteredIncidents, MINES, INCIDENT_TYPES]);
+
     const monthlyTrendData = useMemo(() => {
-        let startDate = new Date();
+        const baseDate = currentDate ? new Date(currentDate) : new Date();
+        let startDate = new Date(baseDate);
         if (period === 'Last 30 Days') startDate = subMonths(startDate, 1);
         if (period === 'Last 3 Months') startDate = subMonths(startDate, 3);
         if (period === 'Last 6 Months') startDate = subMonths(startDate, 6);
         if (period === 'Last 12 Months') startDate = subMonths(startDate, 12);
-        const months = eachMonthOfInterval({ start: startOfMonth(startDate), end: new Date() });
+        const months = eachMonthOfInterval({ start: startOfMonth(startDate), end: baseDate });
         return months.map(month => {
             const monthStr = format(month, 'MMM yyyy');
-            const monthIncidents = filteredIncidents.filter(inc => format(new Date(inc.date), 'MMM yyyy') === monthStr);
+            const monthIncidents = (filteredIncidents || []).filter(inc => format(new Date(inc.date), 'MMM yyyy') === monthStr);
             const typesCount = {};
             (INCIDENT_TYPES || []).forEach(type => { typesCount[type] = monthIncidents.filter(inc => inc.type === type).length; });
             return { name: format(month, 'MMM'), ...typesCount };
         });
-    }, [filteredIncidents, period, INCIDENT_TYPES]);
+    }, [filteredIncidents, period, INCIDENT_TYPES, currentDate]);
     const hotspotData = useMemo(() => {
         const sectionCounts = {};
-        filteredIncidents.forEach(inc => { sectionCounts[inc.sectionName] = (sectionCounts[inc.sectionName] || 0) + 1; });
+        (filteredIncidents || []).forEach(inc => { sectionCounts[inc.sectionName] = (sectionCounts[inc.sectionName] || 0) + 1; });
         return Object.entries(sectionCounts).map(([name, Incidents]) => ({ name, Incidents })).sort((a, b) => a.Incidents - b.Incidents);
     }, [filteredIncidents]);
 
@@ -126,8 +146,25 @@ const ExecutiveDashboardPage = () => {
         setPieChartMineIndex(prev => (prev - 1 + selectedMines.length) % selectedMines.length);
     };
     
+    const areAllMinesSelected = selectedMines.length === MINES.length;
+    const areAllTypesSelected = selectedTypes.length === INCIDENT_TYPES.length;
+
+    const getEmptyStateMessage = () => {
+        if (selectedMines.length === 0 && selectedTypes.length === 0) {
+            return "Select mines and incident types for an overview.";
+        }
+        if (selectedMines.length === 0) {
+            return "Select one or more mines for an overview.";
+        }
+        if (selectedTypes.length === 0) {
+            return "Select one or more incident types for an overview.";
+        }
+        return "No incidents found for the selected filters.";
+    };
+    
     return (
         <div className="space-y-4">
+            <h1 className="text-2xl font-semibold">Executive Dashboard</h1>
             <div className="space-y-3">
                 <div className="overflow-x-auto pb-2">
                     <div className="flex items-center gap-2 w-max">
@@ -136,6 +173,7 @@ const ExecutiveDashboardPage = () => {
                 </div>
                  <div className="overflow-x-auto pb-2">
                     <div className="flex items-center gap-2 w-max">
+                        <button onClick={() => setSelectedMines(areAllMinesSelected ? [] : MINES)} className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${areAllMinesSelected ? 'bg-light-primary text-white' : 'bg-slate-200 dark:bg-slate-600'}`}>All</button>
                         {(MINES || []).map(mine => <button key={mine} onClick={() => handleMineToggle(mine)} className={`px-3 py-1 rounded-full text-xs font-normal whitespace-nowrap ${selectedMines.includes(mine) ? 'bg-light-primary text-white' : 'bg-slate-200 dark:bg-slate-600'}`}>{mine}</button>)}
                     </div>
                 </div>
@@ -146,69 +184,91 @@ const ExecutiveDashboardPage = () => {
                 ) : (
                     <div className="overflow-x-auto pb-2">
                         <div className="flex items-center gap-2 w-max">
-                            {(INCIDENT_TYPES || []).map(type => <button key={type} onClick={() => handleTypeToggle(type)} className={`px-3 py-1 rounded-full text-xs font-normal whitespace-nowrap ${selectedTypes.includes(type) ? 'bg-light-primary text-white' : 'bg-slate-200 dark:bg-slate-600'}`}>{type}</button>)}
+                            <button onClick={() => setSelectedTypes(areAllTypesSelected ? [] : INCIDENT_TYPES)} className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${areAllTypesSelected ? 'bg-light-primary text-white' : 'bg-slate-200 dark:bg-slate-600'}`}>All</button>
+                            {(INCIDENT_TYPES || []).map(type => (
+                                <button 
+                                    key={type} 
+                                    onClick={() => handleTypeToggle(type)} 
+                                    className={`px-3 py-1 rounded-full text-xs font-normal whitespace-nowrap text-white`}
+                                    style={{ backgroundColor: selectedTypes.includes(type) ? incidentTypeColorMap[type] : '#94a3b8' }}
+                                >
+                                    {type}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
-                    <h3 className="font-semibold mb-2 text-base">Mine Performance</h3>
-                    <ResponsiveContainer width="100%" height={300}><BarChart data={minePerformanceData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" fontSize={10} /><YAxis fontSize={10} /><Tooltip content={<CustomTooltip />} /><Bar dataKey="Incidents" fill={chartColors.blue} /></BarChart></ResponsiveContainer>
+            {selectedMines.length === 0 || selectedTypes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center text-light-subtle-text dark:text-dark-subtle-text bg-light-card dark:bg-dark-card rounded-lg">
+                    <Info size={48} className="text-light-secondary mb-2" />
+                    <p className="font-semibold">{getEmptyStateMessage()}</p>
                 </div>
-
-                <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-semibold text-base">Individual Mine Analysis</h3>
-                        <div className="flex items-center gap-1">
-                            <button onClick={prevMine} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronLeft size={16} /></button>
-                            <span className="text-sm font-semibold w-20 text-center">{selectedMines[pieChartMineIndex] || 'N/A'}</span>
-                            <button onClick={nextMine} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronRight size={16} /></button>
-                        </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
+                        <h3 className="font-semibold mb-2 text-base">Mine Performance</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={minePerformanceData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                                <XAxis dataKey="name" fontSize={10} />
+                                <YAxis fontSize={10} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend wrapperStyle={{fontSize: "12px"}}/>
+                                {(INCIDENT_TYPES || []).map(type => (
+                                    <Bar key={type} dataKey={type} stackId="a" fill={incidentTypeColorMap[type]} />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
-                    <ResponsiveContainer width="100%" height={300}>
-                        {selectedMines.length === 0 ? (
-                             <div className="flex flex-col items-center justify-center h-full text-center text-light-subtle-text dark:text-dark-subtle-text">
-                                <Info size={48} className="text-light-secondary mb-2" />
-                                <p className="font-semibold">No Mine Selected</p>
-                                <p className="text-sm">Please select a mine from the filter above.</p>
-                            </div>
-                        ) : individualMineData.totalIncidents > 0 ? (
-                            <>
-                                <PieChart>
-                                    <Pie data={individualMineData.chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                                        {individualMineData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend iconSize={10} wrapperStyle={{fontSize: "10px"}}/>
-                                </PieChart>
-                                {!individualMineData.hasNearMiss && (
-                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-center text-light-accent dark:text-dark-accent bg-orange-50 dark:bg-orange-900/50 p-1 rounded">
-                                        <p className="flex items-center gap-1"><Search size={12}/> <span>Zero Near Misses reported. Are you sure?</span></p>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-center text-light-subtle-text dark:text-dark-subtle-text">
-                                <Smile size={48} className="text-green-500 mb-2" />
-                                <p className="font-semibold">Nice! A safe day at this mine.</p>
-                                <p className="text-sm">No incidents to report for this period.</p>
-                            </div>
-                        )}
-                    </ResponsiveContainer>
-                </div>
-                
-                <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md lg:col-span-2">
-                    <h3 className="font-semibold mb-2 text-base">Monthly Trend Comparison</h3>
-                    <ResponsiveContainer width="100%" height={300}><LineChart data={monthlyTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" fontSize={10} /><YAxis fontSize={10} /><Tooltip content={<CustomTooltip />} /><Legend iconSize={10} wrapperStyle={{fontSize: "10px"}}/>{selectedTypes.map((type, i) => <Line key={type} type="monotone" dataKey={type} stroke={COLORS[i % COLORS.length]} />)}</LineChart></ResponsiveContainer>
-                </div>
 
-                <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md lg:col-span-2">
-                    <h3 className="font-semibold mb-2 text-base">Incident Hotspots (by Section)</h3>
-                    <ResponsiveContainer width="100%" height={400}><BarChart data={hotspotData} layout="vertical" margin={{ top: 5, right: 5, left: 5, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis type="number" fontSize={10} /><YAxis type="category" dataKey="name" width={80} fontSize={10} tickLine={false} axisLine={false} /><Tooltip content={<CustomTooltip />} /><Bar dataKey="Incidents" fill={chartColors.orange} barSize={15} /></BarChart></ResponsiveContainer>
+                    <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-semibold text-base">Individual Mine Analysis</h3>
+                            <div className="flex items-center gap-1">
+                                <button onClick={prevMine} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronLeft size={16} /></button>
+                                <span className="text-sm font-semibold w-20 text-center">{selectedMines[pieChartMineIndex] || 'N/A'}</span>
+                                <button onClick={nextMine} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronRight size={16} /></button>
+                            </div>
+                        </div>
+                        <ResponsiveContainer width="100%" height={300}>
+                            {individualMineData.totalIncidents > 0 ? (
+                                <>
+                                    <PieChart>
+                                        <Pie data={individualMineData.chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                            {individualMineData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={incidentTypeColorMap[entry.name]} />)}
+                                        </Pie>
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend wrapperStyle={{fontSize: "12px"}}/>
+                                    </PieChart>
+                                    {!individualMineData.hasNearMiss && (
+                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-center text-light-accent dark:text-dark-accent bg-orange-50 dark:bg-orange-900/50 p-1 rounded">
+                                            <p className="flex items-center gap-1"><Search size={12}/> <span>Zero Near Misses reported. Are you sure?</span></p>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center text-light-subtle-text dark:text-dark-subtle-text">
+                                    <Smile size={48} className="text-green-500 mb-2" />
+                                    <p className="font-semibold">Nice! A safe day at this mine.</p>
+                                    <p className="text-sm">No incidents to report for this period.</p>
+                                </div>
+                            )}
+                        </ResponsiveContainer>
+                    </div>
+                    
+                    <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md lg:col-span-2">
+                        <h3 className="font-semibold mb-2 text-base">Monthly Trend Comparison</h3>
+                        <ResponsiveContainer width="100%" height={300}><LineChart data={monthlyTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" fontSize={10} /><YAxis fontSize={10} /><Tooltip content={<CustomTooltip />} /><Legend wrapperStyle={{fontSize: "12px"}}/>{selectedTypes.map((type) => <Line key={type} type="monotone" dataKey={type} stroke={incidentTypeColorMap[type]} />)}</LineChart></ResponsiveContainer>
+                    </div>
+
+                    <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-md lg:col-span-2">
+                        <h3 className="font-semibold mb-2 text-base">Incident Hotspots (by Section)</h3>
+                        <ResponsiveContainer width="100%" height={400}><BarChart data={hotspotData} layout="vertical" margin={{ top: 5, right: 5, left: 5, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis type="number" fontSize={10} /><YAxis type="category" dataKey="name" width={80} fontSize={10} tickLine={false} axisLine={false} /><Tooltip content={<CustomTooltip />} /><Bar dataKey="Incidents" fill={chartColors.orange} barSize={15} /></BarChart></ResponsiveContainer>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {isFilterModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

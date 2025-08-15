@@ -3,9 +3,9 @@ import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { collection, writeBatch, query, where, getDocs, doc, addDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { mockIncidents } from '../utils/mockData';
+import { generateMockData } from '../utils/mockData';
 import { serverTimestamp } from 'firebase/firestore';
-import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check, Image as ImageIcon, Megaphone } from 'lucide-react';
+import { ShieldCheck, DatabaseZap, Trash2, Edit, Plus, ToggleLeft, ToggleRight, X, Check, Image as ImageIcon, Megaphone, ArrowUp, ArrowDown } from 'lucide-react';
 import AssignSections from '../components/AssignSections';
 
 const ConfigManager = ({ title, collectionName, items }) => {
@@ -15,7 +15,8 @@ const ConfigManager = ({ title, collectionName, items }) => {
     const handleAddItem = async (e) => {
         e.preventDefault();
         if (!newItem.name || !window.confirm(`Are you sure you want to add "${newItem.name}"?`)) return;
-        await addDoc(collection(db, collectionName), { name: newItem.name, isActive: true });
+        const newOrder = (items.length > 0 ? Math.max(...items.map(i => i.order || 0)) : 0) + 10;
+        await addDoc(collection(db, collectionName), { name: newItem.name, isActive: true, order: newOrder });
         setNewItem({ name: '' });
     };
 
@@ -33,6 +34,26 @@ const ConfigManager = ({ title, collectionName, items }) => {
         await updateDoc(itemDoc, { isActive: !item.isActive });
     };
 
+    const handleReorder = async (index, direction) => {
+        const itemToMove = items[index];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        const itemToSwap = items[swapIndex];
+
+        if (!itemToMove || !itemToSwap || typeof itemToMove.order !== 'number' || typeof itemToSwap.order !== 'number') {
+            alert("Cannot reorder items. One or more items is missing an 'order' field in the database. Please check your Firestore data.");
+            return;
+        }
+
+        const batch = writeBatch(db);
+        const itemToMoveRef = doc(db, collectionName, itemToMove.id);
+        const itemToSwapRef = doc(db, collectionName, itemToSwap.id);
+
+        batch.update(itemToMoveRef, { order: itemToSwap.order });
+        batch.update(itemToSwapRef, { order: itemToMove.order });
+
+        await batch.commit();
+    };
+
     return (
         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
             <h3 className="font-semibold text-base mb-2">{title}</h3>
@@ -47,18 +68,24 @@ const ConfigManager = ({ title, collectionName, items }) => {
                 <button type="submit" className="bg-light-secondary hover:bg-light-secondary/90 text-white p-2 rounded-md"><Plus size={20} /></button>
             </form>
             <ul className="space-y-2">
-                {items && items.map(item => (
+                {items && items.map((item, index) => (
                     <li key={item.id} className="flex items-center justify-between bg-light-card dark:bg-dark-card p-2 rounded-md text-sm">
-                        {editingItem?.id === item.id ? (
-                            <input
-                                type="text"
-                                value={editingItem.name}
-                                onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
-                                className="flex-grow bg-slate-100 dark:bg-slate-700 p-1 rounded-md text-sm"
-                            />
-                        ) : (
-                            <span className={!item.isActive ? 'line-through text-slate-400' : ''}>{item.name}</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                            <div className="flex flex-col">
+                                <button onClick={() => handleReorder(index, 'up')} disabled={index === 0} className="disabled:opacity-20"><ArrowUp size={14} /></button>
+                                <button onClick={() => handleReorder(index, 'down')} disabled={index === items.length - 1} className="disabled:opacity-20"><ArrowDown size={14} /></button>
+                            </div>
+                            {editingItem?.id === item.id ? (
+                                <input
+                                    type="text"
+                                    value={editingItem.name}
+                                    onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                                    className="flex-grow bg-slate-100 dark:bg-slate-700 p-1 rounded-md text-sm"
+                                />
+                            ) : (
+                                <span className={!item.isActive ? 'line-through text-slate-400' : ''}>{item.name}</span>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
                             {editingItem?.id === item.id ? (
                                 <>
@@ -171,55 +198,30 @@ const AdminNoticeManager = () => {
 };
 
 const AdminPanel = () => {
-    const { demoMode, setDemoMode } = useContext(AppContext);
-    const { minesConfig, sectionsConfig, incidentTypesConfig } = useContext(ConfigContext);
+    const { setDemoMode, setLocalDemoIncidents } = useContext(AppContext);
+    const { MINES, SECTIONS, INCIDENT_TYPES, minesConfig, sectionsConfig, incidentTypesConfig } = useContext(ConfigContext);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    const handleLoadDemoData = async () => {
-        if (!window.confirm("Are you sure you want to load 250 mock incidents into the database?")) return;
+    const handleLoadDemoData = () => {
         setLoading(true);
-        setMessage('Loading demo data...');
-        try {
-            const batch = writeBatch(db);
-            const incidentsCollection = collection(db, 'incidents');
-            mockIncidents.forEach(incident => {
-                const docRef = doc(incidentsCollection);
-                batch.set(docRef, { ...incident, isDemo: true, createdAt: serverTimestamp() });
-            });
-            await batch.commit();
-            setDemoMode(true);
-            setMessage('Successfully loaded 250 mock incidents.');
-        } catch (error) {
-            setMessage('Failed to load demo data.');
-            console.error(error);
-        }
+        setMessage('Generating demo data...');
+        const liveConfigs = {
+            mines: MINES,
+            sections: SECTIONS,
+            incidentTypes: INCIDENT_TYPES,
+        };
+        const mockIncidents = generateMockData(liveConfigs);
+        setLocalDemoIncidents(mockIncidents);
+        setDemoMode(true);
+        setMessage(`Successfully generated ${mockIncidents.length} mock incidents.`);
         setLoading(false);
     };
 
-    const handleClearDemoData = async () => {
-        if (!window.confirm("Are you sure you want to delete all demo incidents? This is permanent.")) return;
-        setLoading(true);
-        setMessage('Deleting demo data...');
-        try {
-            const q = query(collection(db, 'incidents'), where("isDemo", "==", true));
-            const snapshot = await getDocs(q);
-            if (snapshot.empty) {
-                setMessage("No demo data found.");
-                setLoading(false);
-                setDemoMode(false);
-                return;
-            }
-            const batch = writeBatch(db);
-            snapshot.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-            setDemoMode(false);
-            setMessage(`Successfully deleted ${snapshot.size} demo incidents.`);
-        } catch (error) {
-            setMessage('Failed to clear demo data.');
-            console.error(error);
-        }
-        setLoading(false);
+    const handleClearDemoData = () => {
+        setLocalDemoIncidents([]);
+        setDemoMode(false);
+        setMessage('Demo data cleared.');
     };
 
     return (
@@ -246,7 +248,7 @@ const AdminPanel = () => {
                 <h2 className="text-lg font-semibold mb-3">Demo Mode Controls</h2>
                 <div className="space-y-3">
                     <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">
-                        Populate the app with mock data for demonstration purposes. This data is tagged and can be cleared at any time.
+                        Generate temporary, in-memory mock data for demonstration purposes. This data is not saved to the database.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button onClick={handleLoadDemoData} disabled={loading} className="flex items-center justify-center gap-2 bg-light-secondary text-white font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50">

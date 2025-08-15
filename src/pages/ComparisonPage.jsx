@@ -3,12 +3,9 @@ import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowDownRight, ArrowUpRight, Minus, AlertTriangle, Shield, HeartPulse, Skull, X } from 'lucide-react';
-import { subDays, subMonths, startOfDay, endOfDay, format } from 'date-fns';
+import { subDays, subMonths, startOfDay, endOfDay, format, startOfYear, endOfYear, startOfMonth } from 'date-fns';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
-
-const fullConfig = resolveConfig(tailwindConfig);
-const chartColors = fullConfig.theme.colors.chart;
 
 const kpiIcons = {
     'Total Incidents': AlertTriangle,
@@ -18,8 +15,14 @@ const kpiIcons = {
 };
 
 const ComparisonPage = () => {
-    const { incidents } = useContext(AppContext);
+    const { incidents, currentDate } = useContext(AppContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
+
+    // CRITICAL FIX: Move theme config resolution inside the component and memoize it.
+    const chartColors = useMemo(() => {
+        const fullConfig = resolveConfig(tailwindConfig);
+        return fullConfig.theme.colors.chart || {};
+    }, []);
 
     const periodOptions = ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months', 'Custom Range'];
 
@@ -28,7 +31,7 @@ const ComparisonPage = () => {
     const [modalData, setModalData] = useState({ isOpen: false, title: '', periodA: [], periodB: [] });
 
     const getDateRange = (period) => {
-        const today = new Date();
+        const baseDate = currentDate ? new Date(currentDate) : new Date();
         if (period.type === 'Custom Range') {
             const start = period.start ? startOfDay(new Date(period.start)) : null;
             const end = period.end ? endOfDay(new Date(period.end)) : null;
@@ -37,13 +40,13 @@ const ComparisonPage = () => {
         
         let start;
         switch (period.type) {
-            case 'Last 30 Days': start = subDays(today, 30); break;
-            case 'Last 3 Months': start = subMonths(today, 3); break;
-            case 'Last 6 Months': start = subMonths(today, 6); break;
-            case 'Last 12 Months': start = subMonths(today, 12); break;
-            default: start = subMonths(today, 3);
+            case 'Last 30 Days': start = subDays(baseDate, 30); break;
+            case 'Last 3 Months': start = subMonths(baseDate, 3); break;
+            case 'Last 6 Months': start = subMonths(baseDate, 6); break;
+            case 'Last 12 Months': start = subMonths(baseDate, 12); break;
+            default: start = subMonths(baseDate, 3);
         }
-        return { start: startOfDay(start), end: endOfDay(today) };
+        return { start: startOfDay(start), end: endOfDay(baseDate) };
     };
 
     const incidentsA = useMemo(() => {
@@ -53,7 +56,7 @@ const ComparisonPage = () => {
             const incDate = new Date(inc.date);
             return incDate >= start && incDate <= end;
         });
-    }, [incidents, periodA]);
+    }, [incidents, periodA, currentDate]);
 
     const incidentsB = useMemo(() => {
         const { start, end } = getDateRange(periodB);
@@ -62,7 +65,7 @@ const ComparisonPage = () => {
             const incDate = new Date(inc.date);
             return incDate >= start && incDate <= end;
         });
-    }, [incidents, periodB]);
+    }, [incidents, periodB, currentDate]);
 
     const handlePeriodChange = (periodSetter, field, value) => {
         periodSetter(prev => ({ ...prev, [field]: value }));
@@ -132,6 +135,8 @@ const ComparisonPage = () => {
 
     return (
         <div className="space-y-4">
+            <h1 className="text-2xl font-semibold">Period Comparison</h1>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                 <PeriodSelector label="Period A" period={periodA} setPeriod={setPeriodA} />
                 <PeriodSelector label="Period B (for comparison)" period={periodB} setPeriod={setPeriodB} />

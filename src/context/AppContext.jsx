@@ -8,9 +8,7 @@ import { ConfigContext } from './ConfigContext';
 
 export const AppContext = createContext();
 
-export const ACCIDENT_TYPES = ['Reportable', 'Serious Bodily', 'Fatal', 'Lost Time Injury (LTI)'];
-// Define the available tags for comments
-export const COMMENT_TAGS = ['Enquiry Report', 'Measures Suggested', 'Action Taken'];
+export const ACCIDENT_TYPES = ['Reportable', 'Serious Bodily', 'Fatal', 'Lost Time Injury'];
 
 export const AppProvider = ({ children }) => {
   const { currentUser } = useContext(AuthContext);
@@ -21,10 +19,14 @@ export const AppProvider = ({ children }) => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [navPreference, setNavPreference] = useState(localStorage.getItem('navPreference') || 'fab');
   const [demoMode, setDemoMode] = useState(localStorage.getItem('demoMode') === 'true');
+  const [localDemoIncidents, setLocalDemoIncidents] = useState([]);
 
   const setDemoModeAndUpdateStorage = (isDemo) => {
     setDemoMode(isDemo);
     localStorage.setItem('demoMode', isDemo);
+    if (!isDemo) {
+        setLocalDemoIncidents([]); // Clear local incidents when turning off demo mode
+    }
   };
 
   const toggleTheme = () => {
@@ -70,23 +72,15 @@ export const AppProvider = ({ children }) => {
     };
     fetchUserDetails();
 
-    let incidentsQuery;
-    const incidentsCollection = collection(db, 'incidents');
-    if (demoMode) {
-        incidentsQuery = query(incidentsCollection, orderBy('createdAt', 'desc'));
-    } else {
-        incidentsQuery = query(incidentsCollection, where("isDemo", "!=", true), orderBy('createdAt', 'desc'));
-    }
+    const incidentsQuery = query(collection(db, 'incidents'), where("isDemo", "!=", true), orderBy('createdAt', 'desc'));
+    
     const unsubscribeIncidents = onSnapshot(incidentsQuery, (snapshot) => {
       setIncidents(snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id })));
       setLoading(false);
-    }, (error) => {
-        console.error("Incident listener error:", error);
-        setLoading(false);
     });
 
     return () => unsubscribeIncidents();
-  }, [currentUser, demoMode]);
+  }, [currentUser]);
   
   const addIncident = async (incidentData) => {
     const newIncident = {
@@ -94,18 +88,18 @@ export const AppProvider = ({ children }) => {
       reporterName: user.name,
       id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
       status: 'Open',
-      mandaysLost: incidentData.type === 'Lost Time Injury (LTI)' ? 0 : null,
+      mandaysLost: incidentData.type.toLowerCase().includes('lost') ? 0 : null,
       comments: [],
       history: [{ user: user.name, action: 'Created Report', timestamp: new Date().toISOString() }],
       createdAt: serverTimestamp(),
       isDemo: false,
     };
     
-    if (ACCIDENT_TYPES.includes(newIncident.type)) {
-        const dateStr = format(new Date(newIncident.date), 'yyyy-MM-dd');
+    if (ACCIDENT_TYPES.some(accType => incidentData.type.toLowerCase().includes(accType.toLowerCase()))) {
+        const dateStr = format(new Date(incidentData.date), 'yyyy-MM-dd');
         const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
         await setDoc(dailySubmissionsDoc, {
-            [newIncident.mine]: { status: 'Accident', submittedAt: new Date().toISOString(), submittedBy: user.name }
+            [incidentData.mine]: { status: 'Accident', submittedAt: new Date().toISOString(), submittedBy: user.name }
         }, { merge: true });
     }
 
@@ -130,7 +124,7 @@ export const AppProvider = ({ children }) => {
         user: user.name, 
         text: commentText, 
         timestamp: new Date().toISOString(), 
-        tags: tags || [] // Save the tags with the comment
+        tags: tags || []
     };
     const newComments = [...(incidentToUpdate.comments || []), newComment];
     const newHistory = [...incidentToUpdate.history, { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
@@ -146,12 +140,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = useMemo(() => ({
-    incidents, loading, addIncident, updateIncident, addComment, submitNoAccident,
+    incidents: demoMode ? [...incidents, ...localDemoIncidents] : incidents,
+    loading, addIncident, updateIncident, addComment, submitNoAccident,
     user, theme, toggleTheme, navPreference, updateNavPreference,
     updateUserLastSelectedMine, getUserLastSelectedMine,
     demoMode, setDemoMode: setDemoModeAndUpdateStorage,
-    COMMENT_TAGS, // Export the tags list
-  }), [incidents, loading, user, theme, navPreference, demoMode]);
+    setLocalDemoIncidents,
+  }), [incidents, localDemoIncidents, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useMemo } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, onSnapshot, query, orderBy, doc } from 'firebase/firestore';
 
@@ -8,7 +8,7 @@ export const ConfigProvider = ({ children }) => {
     const [minesConfig, setMinesConfig] = useState([]);
     const [sectionsConfig, setSectionsConfig] = useState([]);
     const [incidentTypesConfig, setIncidentTypesConfig] = useState([]);
-    const [companyProfile, setCompanyProfile] = useState({ logoUrl: '' }); // <-- Add state for logo
+    const [homePageNotice, setHomePageNotice] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -23,14 +23,12 @@ export const ConfigProvider = ({ children }) => {
         const totalCollections = collectionsToWatch.length;
 
         const unsubs = collectionsToWatch.map(({ setter, name }) => {
-            return onSnapshot(query(collection(db, name), orderBy('name')),
+            return onSnapshot(query(collection(db, name), orderBy('order')),
                 (snapshot) => {
-                    if (!snapshot.metadata.hasPendingWrites) {
-                        setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                        loadedCount++;
-                        if (loadedCount === totalCollections) {
-                            setLoading(false);
-                        }
+                    setter(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    loadedCount++;
+                    if (loadedCount === totalCollections) {
+                        setLoading(false);
                     }
                 },
                 (err) => {
@@ -41,25 +39,34 @@ export const ConfigProvider = ({ children }) => {
             );
         });
         
-        // Listener for the company profile (which includes the logo)
-        const profileDocRef = doc(db, 'config_general', 'companyProfile');
-        const unsubProfile = onSnapshot(profileDocRef, (doc) => {
-            setCompanyProfile(doc.exists() ? doc.data() : { logoUrl: '' });
+        const noticeDocRef = doc(db, 'config_general', 'homePageNotice');
+        const unsubNotice = onSnapshot(noticeDocRef, (doc) => {
+            setHomePageNotice(doc.exists() ? doc.data() : null);
         });
 
         const timeoutId = setTimeout(() => {
             if (loading) {
                 setLoading(false);
             }
-        }, 10000);
+        }, 15000);
 
         return () => {
             unsubs.forEach(unsub => unsub());
-            unsubProfile();
+            unsubNotice();
             clearTimeout(timeoutId);
         };
     }, []);
 
+    // CRITICAL FIX: The useMemo hook must be called before any conditional returns.
+    const value = useMemo(() => ({
+        minesConfig,
+        sectionsConfig,
+        incidentTypesConfig,
+        homePageNotice,
+        MINES: minesConfig.filter(m => m.isActive).map(m => m.name),
+        SECTIONS: sectionsConfig.filter(s => s.isActive).map(s => s.name),
+        INCIDENT_TYPES: incidentTypesConfig.filter(it => it.isActive).map(it => it.name),
+    }), [minesConfig, sectionsConfig, incidentTypesConfig, homePageNotice]);
 
     if (loading) {
         return (
@@ -79,16 +86,6 @@ export const ConfigProvider = ({ children }) => {
             </div>
         )
     }
-
-    const value = {
-        minesConfig,
-        sectionsConfig,
-        incidentTypesConfig,
-        companyProfile, // <-- Provide company profile
-        MINES: minesConfig.filter(m => m.isActive).map(m => m.name),
-        SECTIONS: sectionsConfig.filter(s => s.isActive).map(s => s.name),
-        INCIDENT_TYPES: incidentTypesConfig.filter(it => it.isActive).map(it => it.name),
-    };
 
     return (
         <ConfigContext.Provider value={value}>

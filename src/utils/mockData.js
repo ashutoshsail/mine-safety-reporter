@@ -1,15 +1,14 @@
-import { subDays, format, subMonths, startOfMonth } from 'date-fns';
+import { subDays, format, subMonths, startOfMonth, addDays } from 'date-fns';
 
-// These lists are no longer exported, as the app now gets this data from Firestore.
-const LOCATIONS = ["Main Haul Road", "Workshop Bay 3", "Processing Plant Sector A", "Mine Face 7", "Conveyor Belt Junction", "Substation 2"];
+const VICTIM_NAMES = ["Ramesh Kumar", "Suresh Patel", "Anita Desai", "Vijay Singh", "Priya Sharma"];
+const CONTRACTOR_NAMES = ["Excel Mining Co.", "Rockdrill Services", "Heavy Earthmovers Ltd."];
+const LOCATIONS = ["Main Haul Road", "Workshop Bay 3", "Processing Plant Sector A", "Mine Face 7", "Conveyor Belt Junction"];
 const DESCRIPTIONS = [
     "Minor slip and fall on a wet surface near the wash plant.",
     "A hydraulic hose on excavator EX-102 burst during operation.",
     "Employee reported feeling a sharp pain in their back while manually lifting.",
     "A truck driver reported a near miss with a light vehicle.",
-    "During routine inspection, a frayed wire was discovered on a motor.",
-    "A small rockfall occurred from the highwall in Quarry B.",
-    "Employee received a small cut on their hand while handling a metal sheet."
+    "During routine inspection, a frayed wire was discovered on a motor."
 ];
 
 let incidentCounter = 1000;
@@ -21,22 +20,42 @@ export const generateIncidentId = (mine, type, date) => {
     return `${mine}-${acronym}-${dateStr}-${incidentCounter}`;
 };
 
-// This function now receives the live config from the Admin Panel
 const createIncident = (type, mine, section, referenceDate) => {
-    const incidentDate = subDays(referenceDate, Math.floor(Math.random() * 730)); // Incidents from last 2 years for YoY data
-
-    // NEW: More realistic logic for daysLost based on incident type
-    let daysLost = 0;
+    const incidentDate = subDays(referenceDate, Math.floor(Math.random() * 730));
     const lowerCaseType = type.toLowerCase();
+    const isInjuryIncident = !lowerCaseType.includes('near miss') && !lowerCaseType.includes('high potential');
+    const status = Math.random() > 0.3 ? 'Closed' : 'Open';
+    
+    // MODIFIED: This block now runs for EVERY incident, ensuring victims are always present.
+    let victims = [];
+    const victimCategory = Math.random() > 0.5 ? 'Regular' : 'Contractual';
+    victims.push({
+        name: VICTIM_NAMES[Math.floor(Math.random() * VICTIM_NAMES.length)],
+        age: isInjuryIncident ? Math.floor(Math.random() * 40) + 22 : '', // Age is only relevant for injuries
+        category: victimCategory,
+        formB: `FB-${Math.floor(Math.random() * 900) + 100}`,
+        contractorName: victimCategory === 'Contractual' ? CONTRACTOR_NAMES[Math.floor(Math.random() * CONTRACTOR_NAMES.length)] : '',
+        poNumber: victimCategory === 'Contractual' ? `PO-${Math.floor(Math.random() * 9000) + 1000}` : '',
+    });
 
-    if (!lowerCaseType.includes('near miss') && !lowerCaseType.includes('high potential')) {
-    // If it's any kind of injury/accident, assign daysLost.
-    if (lowerCaseType.includes('fatality')) {
-        daysLost = 6000; // Standard high value for fatalities
-    } else {
-        daysLost = Math.floor(Math.random() * 45) + 1; // 1 to 45 days for other injuries
+    // DaysLost are still only calculated for actual injuries.
+    let daysLost = 0;
+    if (isInjuryIncident) {
+        daysLost = Math.floor(Math.random() * 45) + 1;
     }
-}
+    if (lowerCaseType.includes('fatality')) {
+        daysLost = 6000;
+    }
+
+    let comments = [];
+    if (status === 'Closed') {
+        comments.push({
+            user: "System",
+            text: "Investigation complete. Root cause identified and corrective actions implemented. Case closed.",
+            timestamp: addDays(incidentDate, daysLost > 5 ? 5 : daysLost).toISOString(),
+            tags: ["Action Taken", "Enquiry Report"]
+        });
+    }
 
     return {
         id: generateIncidentId(mine, type, incidentDate),
@@ -46,30 +65,28 @@ const createIncident = (type, mine, section, referenceDate) => {
         date: format(incidentDate, 'yyyy-MM-dd'),
         time: `${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
         type: type,
+        reason: Math.random() > 0.5 ? 'Unsafe Act' : 'Unsafe Condition',
         location: LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)],
         description: DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)],
-        victims: [],
-        status: Math.random() > 0.3 ? 'Closed' : 'Open',
-        daysLost: daysLost, // MODIFIED: Renamed from mandaysLost and using new logic
+        victims: victims,
+        status: status,
+        daysLost: daysLost,
         photos: [],
-        comments: [],
+        comments: comments,
         history: [{ user: "System", action: "Created Demo Report", timestamp: incidentDate.toISOString() }],
         createdAt: incidentDate,
     };
 };
 
-// NEW: Function to generate monthly hours worked for each mine
 const generateHoursWorked = (mines, referenceDate) => {
     const hoursData = {};
     mines.forEach(mine => {
         hoursData[mine] = {};
-        // Generate data for the last 24 months to support YoY comparisons
         for (let i = 0; i < 24; i++) {
             const monthDate = subMonths(startOfMonth(referenceDate), i);
             const monthKey = format(monthDate, 'yyyy-MM');
-            // Simulate realistic work hours with slight monthly variance
             const baseHours = 45000;
-            const variance = (Math.random() - 0.5) * 10000; // +/- 5000 hours
+            const variance = (Math.random() - 0.5) * 10000;
             hoursData[mine][monthKey] = Math.round(baseHours + variance);
         }
     });
@@ -82,10 +99,9 @@ export const generateMockData = (liveConfigs) => {
     const { mines, sections, incidentTypes } = liveConfigs;
 
     if (!mines || mines.length === 0 || !sections || sections.length === 0 || !incidentTypes || incidentTypes.length === 0) {
-        return { incidents: [], hoursWorked: {} }; // Return empty structure
+        return { incidents: [], hoursWorked: {} };
     }
 
-    // Generate 350 incidents, distributed across the available types
     for (let i = 0; i < 350; i++) {
         const type = incidentTypes[i % incidentTypes.length];
         const mine = mines[i % mines.length];
@@ -93,9 +109,7 @@ export const generateMockData = (liveConfigs) => {
         incidents.push(createIncident(type, mine, section, referenceDate));
     }
 
-    // NEW: Generate the hours worked data
     const hoursWorked = generateHoursWorked(mines, referenceDate);
 
-    // MODIFIED: Return an object with both incidents and hoursWorked
     return { incidents, hoursWorked };
 };

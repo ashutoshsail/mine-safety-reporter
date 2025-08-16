@@ -39,7 +39,6 @@ const ReportIncidentPage = () => {
         incidentCause: '',
         immediateAction: '',
         photos: [],
-        // MODIFIED: daysLost is removed from the initial state
     });
     const [newIncident, setNewIncident] = useState(null);
     const pdfRef = useRef();
@@ -61,6 +60,7 @@ const ReportIncidentPage = () => {
         }
     }, [availableSections, formData.mine]);
 
+    // This variable is still useful to conditionally require the 'Age' field.
     const isInjuryIncident = !['Near Miss', 'High Potential Incident'].includes(formData.type);
 
     const handleInputChange = useCallback((e) => {
@@ -85,15 +85,17 @@ const ReportIncidentPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isInjuryIncident && formData.victims.length === 0) {
-            alert('Details of the involved/injured person are required for this type of incident.');
+
+        // MODIFIED: This check now runs for ALL incident types.
+        if (formData.victims.length === 0) {
+            alert('Details of at least one involved person are required for all incident reports.');
             return;
         }
+
         if (step === 1) setStep(2);
         else if (step === 2) {
             const finalData = { ...formData };
             if (formData.sectionName === 'Other') finalData.sectionName = formData.otherSection;
-            // MODIFIED: daysLost logic is removed from submission
             const createdIncident = await addIncident(finalData);
             setNewIncident(createdIncident);
             setStep(3);
@@ -139,7 +141,8 @@ const ReportIncidentPage = () => {
                             <div className="col-span-2"><FormField label="Description"><textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className={inputClass} required></textarea></FormField></div>
                             
                             <div className="col-span-2 border-t border-light-border dark:border-dark-border pt-4">
-                               <h3 className="font-semibold mb-2 text-base">Details of Involved/Injured</h3>
+                               <h3 className="font-semibold mb-2 text-base">Details of Involved/Injured Person</h3>
+                               <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text mb-3 -mt-2">At least one person is required for all incident types.</p>
                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                        <div className="col-span-2 sm:col-span-1"><FormField label="Name"><input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Person's Name" className={inputClass} /></FormField></div>

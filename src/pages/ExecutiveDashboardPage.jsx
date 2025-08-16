@@ -1,16 +1,15 @@
 import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ChevronLeft, ChevronRight, X as XIcon, Smile, Info, TrendingUp, TrendingDown, ChevronDown, Check } from 'lucide-react';
-import { subMonths, startOfMonth, endOfMonth, format, eachMonthOfInterval, subDays, subYears } from 'date-fns';
+import { subMonths, startOfMonth, format, eachMonthOfInterval, subDays } from 'date-fns';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
 
 // --- Configuration and Setup ---
 const fullConfig = resolveConfig(tailwindConfig);
 const chartColors = fullConfig.theme.chart; 
-const COLORS = Object.values(chartColors);
 
 // --- Reusable UI Components ---
 const KpiCard = ({ title, value, change, changeType }) => (
@@ -23,16 +22,6 @@ const KpiCard = ({ title, value, change, changeType }) => (
         </div>
     </div>
 );
-
-const useWindowSize = () => {
-    const [width, setWidth] = useState(window.innerWidth);
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-    return width;
-};
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -62,17 +51,17 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
         if (isSingleSelect) return selected;
         if (isAllSelected) return `All ${label}`;
         if (selected.length === 1) return selected[0];
-        return `${selected.length} ${label} selected`;
+        return `${selected.length} ${label}`;
     };
 
     return (
         <div className="relative" ref={ref}>
-            <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-1 text-xs font-semibold bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600">
+            <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-sm font-semibold bg-light-card dark:bg-dark-card px-3 py-1.5 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700">
                 <span>{getDisplayText()}</span>
-                <ChevronDown size={14} />
+                <ChevronDown size={16} className="text-light-subtle-text" />
             </button>
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 bg-light-card dark:bg-dark-card border dark:border-dark-border rounded-lg shadow-xl w-48 z-20">
+                <div className="absolute top-full mt-2 left-0 bg-light-card dark:bg-dark-card border dark:border-dark-border rounded-lg shadow-xl w-56 z-20">
                     <ul className="max-h-60 overflow-y-auto text-sm p-1">
                         {!isSingleSelect && (
                             <li className="px-2 py-1.5 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onSelectAll}>
@@ -130,12 +119,11 @@ const ExecutiveDashboardPage = () => {
 
     const getPeriodDates = (p, base) => {
         let dateFrom = new Date(base);
-        let dateTo = new Date(base);
         if (p === 'Last 30 Days') dateFrom = subDays(dateFrom, 30);
         if (p === 'Last 3 Months') dateFrom = subMonths(dateFrom, 3);
         if (p === 'Last 6 Months') dateFrom = subMonths(dateFrom, 6);
         if (p === 'Last 12 Months') dateFrom = subMonths(dateFrom, 12);
-        return { dateFrom, dateTo };
+        return { dateFrom };
     };
 
     const filteredIncidents = useMemo(() => {
@@ -152,7 +140,7 @@ const ExecutiveDashboardPage = () => {
 
     const kpiData = useMemo(() => {
         const baseDate = currentDate ? new Date(currentDate) : new Date();
-        const { dateFrom: currentPeriodFrom, dateTo: currentPeriodTo } = getPeriodDates(period, baseDate);
+        const { dateFrom: currentPeriodFrom } = getPeriodDates(period, baseDate);
         const periodDurationMonths = { 'Last 30 Days': 1, 'Last 3 Months': 3, 'Last 6 Months': 6, 'Last 12 Months': 12 }[period] || 3;
         const prevPeriodTo = subDays(currentPeriodFrom, 1);
         const prevPeriodFrom = subMonths(prevPeriodTo, periodDurationMonths);
@@ -170,7 +158,7 @@ const ExecutiveDashboardPage = () => {
             }
             return total;
         };
-        const currentHours = getTotalHours(currentPeriodFrom, currentPeriodTo);
+        const currentHours = getTotalHours(currentPeriodFrom, baseDate);
         const prevHours = getTotalHours(prevPeriodFrom, prevPeriodTo);
         const allIncidentsInScope = (incidents || []).filter(inc => selectedMines.includes(inc.mine) && selectedTypes.includes(inc.type));
         const currentPeriodIncidents = allIncidentsInScope.filter(inc => new Date(inc.date) >= currentPeriodFrom && new Date(inc.date) <= baseDate);
@@ -221,21 +209,22 @@ const ExecutiveDashboardPage = () => {
         return data.sort((a, b) => b.total - a.total);
     }, [filteredIncidents, MINES, INCIDENT_TYPES]);
 
-    const monthlyTrendData = useMemo(() => {
+    const categoryTrendData = useMemo(() => {
         const baseDate = currentDate ? new Date(currentDate) : new Date();
         const { dateFrom } = getPeriodDates(period, baseDate);
-        const allIncidentsInScope = (incidents || []).filter(inc => selectedMines.includes(inc.mine) && selectedTypes.includes(inc.type));
         const months = eachMonthOfInterval({ start: dateFrom, end: baseDate });
+
         return months.map(month => {
             const monthStr = format(month, 'MMM yyyy');
-            const prevYearMonthStr = format(subYears(month, 1), 'MMM yyyy');
-            return {
-                name: format(month, 'MMM'),
-                'Current Year': allIncidentsInScope.filter(inc => format(new Date(inc.date), 'MMM yyyy') === monthStr).length,
-                'Previous Year': allIncidentsInScope.filter(inc => format(new Date(inc.date), 'MMM yyyy') === prevYearMonthStr).length,
-            };
+            const monthData = { name: format(month, 'MMM') };
+            const monthIncidents = filteredIncidents.filter(inc => format(new Date(inc.date), 'MMM yyyy') === monthStr);
+            
+            (INCIDENT_TYPES || []).forEach(type => {
+                monthData[type] = monthIncidents.filter(inc => inc.type === type).length;
+            });
+            return monthData;
         });
-    }, [period, incidents, selectedMines, selectedTypes, currentDate]);
+    }, [filteredIncidents, period, INCIDENT_TYPES, currentDate]);
 
     const hotspotData = useMemo(() => {
         const sectionCounts = {};
@@ -258,6 +247,14 @@ const ExecutiveDashboardPage = () => {
         <div className="space-y-4">
             <h1 className="text-2xl font-semibold">Executive Dashboard</h1>
             
+            <div className="sticky top-2 z-30">
+                <div className="flex items-center justify-center gap-2 md:gap-4 p-2 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm rounded-full shadow-lg max-w-lg mx-auto">
+                    <FilterPill label="Period" options={periodOptions} selected={period} onSelect={handlePeriodSelect} isSingleSelect={true} />
+                    <FilterPill label="Mines" options={MINES} selected={selectedMines} onSelect={handleMineSelect} onSelectAll={handleSelectAllMines} isAllSelected={areAllMinesSelected} />
+                    <FilterPill label="Types" options={INCIDENT_TYPES} selected={selectedTypes} onSelect={handleTypeSelect} onSelectAll={handleSelectAllTypes} isAllSelected={areAllTypesSelected} />
+                </div>
+            </div>
+            
             <div className="flex gap-4 overflow-x-auto pb-3 -mb-3">
                 <KpiCard title="Total Incidents" value={kpiData.totalIncidents.value} change={kpiData.totalIncidents.change} changeType={kpiData.totalIncidents.change > 0 ? 'bad' : 'good'} />
                 <KpiCard title="LTIFR" value={kpiData.ltifr.value} change={kpiData.ltifr.change} changeType={kpiData.ltifr.change > 0 ? 'bad' : 'good'} />
@@ -266,22 +263,15 @@ const ExecutiveDashboardPage = () => {
 
             {selectedMines.length === 0 || selectedTypes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center text-light-subtle-text dark:text-dark-subtle-text bg-light-card dark:bg-dark-card rounded-lg">
-                    <Info size={48} className="text-light-secondary mb-2" />
-                    <p className="font-semibold">Please select at least one mine and one incident type to view the dashboard.</p>
+                    <Info size={48} className="text-light-secondary mb-2" /><p className="font-semibold">Please select at least one mine and one incident type to view the dashboard.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-semibold text-base">Mine Performance</h3>
-                            <div className="flex gap-2">
-                                <FilterPill label="Mines" options={MINES} selected={selectedMines} onSelect={handleMineSelect} onSelectAll={handleSelectAllMines} isAllSelected={areAllMinesSelected} />
-                                <FilterPill label="Types" options={INCIDENT_TYPES} selected={selectedTypes} onSelect={handleTypeSelect} onSelectAll={handleSelectAllTypes} isAllSelected={areAllTypesSelected} />
-                            </div>
-                        </div>
+                        <h3 className="font-semibold text-base mb-2">Mine Performance</h3>
                         <ResponsiveContainer width="100%" height={300}>
                              <BarChart data={minePerformanceData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" fontSize={10} /><YAxis fontSize={10} /><Tooltip content={<CustomTooltip />} /><Legend wrapperStyle={{fontSize: "12px"}}/><ReferenceLine y={15} label={{ value: 'Target', position: 'insideTopLeft', fill: '#dc2626' }} stroke="#dc2626" strokeDasharray="3 3" />
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" fontSize={10} /><YAxis fontSize={10} /><Tooltip content={<CustomTooltip />} /><Legend wrapperStyle={{fontSize: "12px"}}/>
                                 {(INCIDENT_TYPES || []).map(type => (<Bar key={type} dataKey={type} stackId="a" fill={incidentTypeColorMap[type]} />))}
                             </BarChart>
                         </ResponsiveContainer>
@@ -309,25 +299,33 @@ const ExecutiveDashboardPage = () => {
                         </div>
                     )}
                     
-                    <div className="lg:col-span-2 flex lg:grid lg:grid-cols-2 gap-4 overflow-x-auto lg:overflow-visible pb-4 -mb-4">
-                        <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex-shrink-0 w-11/12 sm:w-full">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-semibold text-base">Monthly Trend</h3>
-                                <FilterPill label="Period" options={periodOptions} selected={period} onSelect={handlePeriodSelect} isSingleSelect={true} />
-                            </div>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={monthlyTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" fontSize={10} /><YAxis fontSize={10} /><Tooltip content={<CustomTooltip />} /><Legend wrapperStyle={{fontSize: "12px"}}/><Line type="monotone" dataKey="Current Year" stroke={chartColors.blue} strokeWidth={2} /><Line type="monotone" dataKey="Previous Year" stroke={chartColors.gray} strokeDasharray="5 5" /></LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                    <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                        <h3 className="font-semibold text-base mb-2">Category-wise Monthly Trend</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={categoryTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                                <XAxis dataKey="name" fontSize={10} />
+                                <YAxis fontSize={10} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend wrapperStyle={{fontSize: "12px"}}/>
+                                {(INCIDENT_TYPES || []).map(type => (
+                                    <Bar key={type} dataKey={type} stackId="a" fill={incidentTypeColorMap[type]} />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
 
-                        <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex-shrink-0 w-11/12 sm:w-full">
-                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-semibold text-base">Incident Hotspots</h3>
-                             </div>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={hotspotData} layout="vertical" margin={{ top: 5, right: 5, left: 5, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis type="number" fontSize={10} /><YAxis type="category" dataKey="name" width={80} fontSize={10} tickLine={false} axisLine={false} /><Tooltip content={<CustomTooltip />} /><Bar dataKey="Incidents" fill={chartColors.orange} barSize={15} /></BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                    <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+                         <h3 className="font-semibold text-base mb-2">Incident Hotspots</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={hotspotData} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                                <XAxis type="number" fontSize={10} />
+                                <YAxis type="category" dataKey="name" width={80} fontSize={10} tickLine={false} axisLine={false} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Bar dataKey="Incidents" fill={chartColors.orange} barSize={15} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             )}

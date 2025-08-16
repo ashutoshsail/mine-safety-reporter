@@ -72,11 +72,15 @@ const IncidentCard = ({ incident }) => {
     };
     
     const handleUploadPhotos = async () => {
-        if (photosToUpload.length === 0) return;
+        if (photosToUpload.length === 0 || !window.confirm(`Are you sure you want to upload ${photosToUpload.length} photo(s)?`)) return;
         const existingPhotos = incident.photos || [];
         const updatedPhotos = [...existingPhotos, ...photosToUpload];
         await updateIncident(incident.docId, { photos: updatedPhotos });
         setPhotosToUpload([]);
+    };
+
+    const removePhotoToUpload = (index) => {
+        setPhotosToUpload(prev => prev.filter((_, i) => i !== index));
     };
     
     return (
@@ -118,9 +122,6 @@ const IncidentCard = ({ incident }) => {
                         <button onClick={() => setShowHistory(true)} className="text-xs bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 font-semibold px-3 py-1 rounded-md flex items-center gap-1"><History size={14} /> History</button>
                         <button onClick={() => fileInputRef.current.click()} className="text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 font-semibold px-3 py-1 rounded-md flex items-center gap-1"><Paperclip size={14} /> Attach Photo</button>
                         <input type="file" multiple ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-                        {photosToUpload.length > 0 && (
-                            <button onClick={handleUploadPhotos} className="text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900/50 text-green-800 dark:text-green-300 font-semibold px-3 py-1 rounded-md flex items-center gap-1"><Upload size={14} /> Upload {photosToUpload.length} Photo(s)</button>
-                        )}
                         {incident.type === 'Lost Time Injury' && (
                             <div className="flex items-center gap-2">
                                 <label className="text-xs font-semibold">Mandays Lost:</label>
@@ -134,14 +135,21 @@ const IncidentCard = ({ incident }) => {
                             <h4 className="font-semibold mb-1 text-sm">Attached Photos</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                                 {incident.photos?.map((photo, index) => (
-                                    <a key={index} href={photo.dataUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                    <a key={index} href={photo.dataUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="relative group">
                                         <img src={photo.dataUrl} alt={photo.name} className="w-full h-24 object-cover rounded-md" />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs p-1 text-center">View Photo</div>
                                     </a>
                                 ))}
                                 {photosToUpload.map((photo, index) => (
-                                    <img key={`new-${index}`} src={photo.dataUrl} alt={photo.name} className="w-full h-24 object-cover rounded-md border-2 border-dashed border-light-primary" />
+                                    <div key={`new-${index}`} className="relative">
+                                        <img src={photo.dataUrl} alt={photo.name} className="w-full h-24 object-cover rounded-md border-2 border-dashed border-light-primary" />
+                                        <button onClick={() => removePhotoToUpload(index)} className="absolute -top-1 -right-1 bg-light-status-danger text-white rounded-full p-0.5"><X size={12} /></button>
+                                    </div>
                                 ))}
                             </div>
+                             {photosToUpload.length > 0 && (
+                                <button onClick={handleUploadPhotos} className="mt-2 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900/50 text-green-800 dark:text-green-300 font-semibold px-3 py-1 rounded-md flex items-center gap-1"><Upload size={14} /> Upload {photosToUpload.length} Photo(s)</button>
+                            )}
                         </div>
                     )}
 
@@ -391,7 +399,7 @@ const FilterPanel = ({ onClose, filters, setFilters }) => {
                         )}
                     </div>
                     <MultiSelectFilter title="Status" options={['Open', 'Closed']} selected={tempFilters.status} onSelect={v => handleMultiSelect('status', v)} columns="2" />
-                    <MultiSelectFilter title="Mine" options={MINES} selected={tempFilters.mine} onSelect={v => handleMultiSelect('mine', v)} onSelectAll={() => handleSelectAll('mine', MINES)} columns="2" />
+                    <MultiSelectFilter title="Mine" options={MINES} selected={tempFilters.mine} onSelect={v => handleMultiSelect('mine', v)} onSelectAll={() => handleSelectAll('mine', MINES)} columns="2 sm:grid-cols-2" />
                     <MultiSelectFilter title="Incident Type" options={INCIDENT_TYPES} selected={tempFilters.type} onSelect={v => handleMultiSelect('type', v)} onSelectAll={() => handleSelectAll('type', INCIDENT_TYPES)} />
                 </div>
                 <div className="p-4 border-t mt-auto flex justify-between">

@@ -14,6 +14,7 @@ export const AppProvider = ({ children }) => {
   const { currentUser } = useContext(AuthContext);
   const { MINES } = useContext(ConfigContext);
   const [incidents, setIncidents] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ name: '', userId: '', email: '', isAdmin: false });
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -25,7 +26,7 @@ export const AppProvider = ({ children }) => {
     setDemoMode(isDemo);
     localStorage.setItem('demoMode', isDemo);
     if (!isDemo) {
-        setLocalDemoIncidents([]); // Clear local incidents when turning off demo mode
+        setLocalDemoIncidents([]);
     }
   };
 
@@ -79,7 +80,15 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     });
 
-    return () => unsubscribeIncidents();
+    const usersQuery = query(collection(db, 'users'), orderBy('name'));
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+        setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => {
+        unsubscribeIncidents();
+        unsubscribeUsers();
+    };
   }, [currentUser]);
   
   const addIncident = async (incidentData) => {
@@ -110,21 +119,24 @@ export const AppProvider = ({ children }) => {
 
   const updateIncident = async (docId, updates) => {
     const incidentDoc = doc(db, 'incidents', docId);
-    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    const allIncidents = [...incidents, ...localDemoIncidents];
+    const incidentToUpdate = allIncidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
     const newHistory = [...incidentToUpdate.history, { user: user.name, action: `Updated fields: ${Object.keys(updates).join(', ')}`, timestamp: new Date().toISOString() }];
     await updateDoc(incidentDoc, { ...updates, history: newHistory });
   };
 
-  const addComment = async (docId, commentText, tags) => {
+  const addComment = async (docId, commentText, tags, taggedUsers) => {
     const incidentDoc = doc(db, 'incidents', docId);
-    const incidentToUpdate = incidents.find(inc => inc.docId === docId);
+    const allIncidents = [...incidents, ...localDemoIncidents];
+    const incidentToUpdate = allIncidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
     const newComment = { 
         user: user.name, 
         text: commentText, 
         timestamp: new Date().toISOString(), 
-        tags: tags || []
+        tags: tags || [],
+        taggedUsers: taggedUsers || []
     };
     const newComments = [...(incidentToUpdate.comments || []), newComment];
     const newHistory = [...incidentToUpdate.history, { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
@@ -141,12 +153,13 @@ export const AppProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     incidents: demoMode ? [...incidents, ...localDemoIncidents] : incidents,
+    allUsers,
     loading, addIncident, updateIncident, addComment, submitNoAccident,
     user, theme, toggleTheme, navPreference, updateNavPreference,
     updateUserLastSelectedMine, getUserLastSelectedMine,
     demoMode, setDemoMode: setDemoModeAndUpdateStorage,
     setLocalDemoIncidents,
-  }), [incidents, localDemoIncidents, loading, user, theme, navPreference, demoMode]);
+  }), [incidents, localDemoIncidents, allUsers, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

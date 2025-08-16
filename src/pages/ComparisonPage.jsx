@@ -91,7 +91,7 @@ const ComparisonPage = () => {
 
     const chartColors = useMemo(() => {
         const fullConfig = resolveConfig(tailwindConfig);
-        return fullConfig.theme.colors.chart || {};
+        return fullConfig.theme.chart || {};
     }, []);
 
     const [periodA, setPeriodA] = useState({ start: null, end: null });
@@ -287,12 +287,12 @@ const ComparisonPage = () => {
                         <FilterPill label="Mines" options={MINES} selected={typeCompMines} onSelect={handleTypeCompMineSelect} onSelectAll={handleTypeCompMineSelectAll} isAllSelected={typeCompMines.length === MINES.length} />
                     </div>
                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={typeComparisonData} margin={{ top: 5, right: 5, left: -25, bottom: 40 }}>
+                        <BarChart data={typeComparisonData} margin={{ top: 20, right: 5, left: -25, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
                             <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} interval={0} fontSize={10} />
                             <YAxis fontSize={10} />
                             <Tooltip />
-                            <Legend wrapperStyle={{fontSize: "12px"}}/>
+                            <Legend verticalAlign="top" wrapperStyle={{fontSize: "12px", marginBottom: "10px"}}/>
                             <Bar dataKey="Period A" fill={chartColors.orange} />
                             <Bar dataKey="Period B" fill={chartColors.blue} />
                         </BarChart>

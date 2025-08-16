@@ -2,8 +2,8 @@ import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Award, AlertCircle, ChevronDown, Check } from 'lucide-react';
-import { subMonths, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subQuarters, format, startOfYear, subYears } from 'date-fns';
+import { TrendingUp, TrendingDown, Award, AlertCircle, ChevronDown, Check, X as XIcon } from 'lucide-react';
+import { subMonths, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subQuarters, format, startOfYear, subYears, isValid } from 'date-fns';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
 
@@ -14,11 +14,11 @@ const KpiCard = ({ title, valueA, valueB, percentageChange }) => {
     const Icon = changeType === 'bad' ? TrendingUp : TrendingDown;
 
     return (
-        <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
+        <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex-shrink-0 w-3/5 sm:w-1/2 md:w-auto">
             <h4 className="font-semibold text-sm text-light-subtle-text dark:text-dark-subtle-text truncate">{title}</h4>
             <div className="flex items-baseline gap-4 mt-2">
                 <p className="text-3xl font-bold">{valueA}</p>
-                <div className={`flex items-center text-lg font-bold ${changeType === 'good' ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`flex items-center text-lg font-semibold ${changeType === 'good' ? 'text-green-500' : 'text-red-500'}`}>
                     {changeType !== 'same' && <Icon size={20} className="mr-1"/>}
                     <span>{percentageChange.toFixed(1)}%</span>
                 </div>
@@ -65,7 +65,7 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
             {isOpen && (
                 <div className="absolute top-full mt-2 right-0 bg-light-card dark:bg-dark-card border dark:border-dark-border rounded-lg shadow-xl w-48 z-20">
                     <ul className="max-h-60 overflow-y-auto text-sm p-1">
-                        <li className="px-2 py-1.5 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onSelectAll}>
+                        <li className="px-2 py-1.5 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onSelectAll}>
                             {isAllSelected ? 'Deselect All' : 'Select All'}
                         </li>
                         {options.map(option => (
@@ -100,6 +100,8 @@ const ComparisonPage = () => {
     
     const [mineCompTypes, setMineCompTypes] = useState([]);
     const [typeCompMines, setTypeCompMines] = useState([]);
+    const [isCustomDateModalOpen, setIsCustomDateModalOpen] = useState(false);
+    const [customDates, setCustomDates] = useState({ a_start: '', a_end: '', b_start: '', b_end: '' });
 
     useEffect(() => {
         setDateRanges('This Quarter vs Last Quarter');
@@ -113,33 +115,41 @@ const ComparisonPage = () => {
 
         switch (preset) {
             case 'This Month vs Previous Month':
-                pA_start = startOfMonth(base);
-                pA_end = endOfMonth(base);
-                pB_start = startOfMonth(subMonths(base, 1));
-                pB_end = endOfMonth(subMonths(base, 1));
+                pA_start = startOfMonth(base); pA_end = endOfMonth(base);
+                pB_start = startOfMonth(subMonths(base, 1)); pB_end = endOfMonth(subMonths(base, 1));
                 break;
             case 'This Quarter vs Last Quarter':
-                pA_start = startOfQuarter(base);
-                pA_end = endOfQuarter(base);
-                pB_start = startOfQuarter(subQuarters(base, 1));
-                pB_end = endOfQuarter(subQuarters(base, 1));
+                pA_start = startOfQuarter(base); pA_end = endOfQuarter(base);
+                pB_start = startOfQuarter(subQuarters(base, 1)); pB_end = endOfQuarter(subQuarters(base, 1));
                 break;
             case 'This Month vs Same Month Last Year':
-                pA_start = startOfMonth(base);
-                pA_end = endOfMonth(base);
-                pB_start = startOfMonth(subYears(base, 1));
-                pB_end = endOfMonth(subYears(base, 1));
+                pA_start = startOfMonth(base); pA_end = endOfMonth(base);
+                pB_start = startOfMonth(subYears(base, 1)); pB_end = endOfMonth(subYears(base, 1));
                 break;
             case 'Year to Date vs Previous Year to Date':
-                pA_start = startOfYear(base);
-                pA_end = base;
-                pB_start = startOfYear(subYears(base, 1));
-                pB_end = subYears(base, 1);
+                pA_start = startOfYear(base); pA_end = base;
+                pB_start = startOfYear(subYears(base, 1)); pB_end = subYears(base, 1);
                 break;
         }
         setPeriodA({ start: pA_start, end: pA_end });
         setPeriodB({ start: pB_start, end: pB_end });
         setActivePreset(preset);
+    };
+
+    const handleCustomDateApply = () => {
+        const a_start = new Date(customDates.a_start);
+        const a_end = new Date(customDates.a_end);
+        const b_start = new Date(customDates.b_start);
+        const b_end = new Date(customDates.b_end);
+
+        if(isValid(a_start) && isValid(a_end) && isValid(b_start) && isValid(b_end)) {
+            setPeriodA({ start: a_start, end: a_end });
+            setPeriodB({ start: b_start, end: b_end });
+            setActivePreset('Custom');
+            setIsCustomDateModalOpen(false);
+        } else {
+            alert('Please enter valid dates for all fields.');
+        }
     };
 
     const incidentsA = useMemo(() => {
@@ -211,22 +221,32 @@ const ComparisonPage = () => {
 
     return (
         <div className="space-y-6">
-            <div className="sticky top-2 z-30">
-                <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm p-4 rounded-lg shadow-lg">
-                    <div className="flex flex-wrap gap-2">
+            <div className="sticky top-4 z-30">
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-lg">
+                    <div className="flex overflow-x-auto pb-2 -mb-2 space-x-2 flex-nowrap">
                         {presets.map(preset => (
-                            <button key={preset} onClick={() => setDateRanges(preset)} className={`text-xs sm:text-sm px-3 py-1.5 rounded-full font-semibold ${activePreset === preset ? 'bg-light-primary text-white' : 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300'}`}>
+                            <button key={preset} onClick={() => setDateRanges(preset)} className={`flex-shrink-0 text-xs sm:text-sm px-3 py-1.5 rounded-full font-medium ${activePreset === preset ? 'bg-light-primary text-white' : 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300'}`}>
                                 {preset}
                             </button>
                         ))}
                     </div>
-                    <div className="text-center text-sm font-medium text-light-subtle-text dark:text-dark-subtle-text mt-3">
-                        Comparing <span className="font-bold text-light-text dark:text-dark-text">{periodA.start && format(periodA.start, 'd MMM yyyy')} - {periodA.end && format(periodA.end, 'd MMM yyyy')}</span> against <span className="font-bold text-light-text dark:text-dark-text">{periodB.start && format(periodB.start, 'd MMM yyyy')} - {periodB.end && format(periodB.end, 'd MMM yyyy')}</span>
+                    <div className="text-center mt-4">
+                        <div className="grid grid-cols-3 items-center">
+                             <div onClick={() => setIsCustomDateModalOpen(true)} className="cursor-pointer p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                                <p className="text-sm font-semibold text-light-text dark:text-dark-text">Period A</p>
+                                <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text">{periodA.start && format(periodA.start, 'd MMM yyyy')} - {periodA.end && format(periodA.end, 'd MMM yyyy')}</p>
+                            </div>
+                            <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">vs</p>
+                            <div onClick={() => setIsCustomDateModalOpen(true)} className="cursor-pointer p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                                <p className="text-sm font-semibold text-light-text dark:text-dark-text">Period B</p>
+                                <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text">{periodB.start && format(periodB.start, 'd MMM yyyy')} - {periodB.end && format(periodB.end, 'd MMM yyyy')}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 -mb-4 md:grid md:grid-cols-3">
                 {kpiData.map(kpi => <KpiCard key={kpi.title} {...kpi} />)}
             </div>
 
@@ -238,7 +258,7 @@ const ComparisonPage = () => {
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-light-subtle-text dark:text-dark-subtle-text uppercase">
+                            <thead className="text-xs text-light-subtle-text dark:text-dark-subtle-text uppercase font-medium">
                                 <tr>
                                     <th className="py-2 px-2">Mine</th>
                                     <th className="py-2 px-2 text-center">Period A</th>
@@ -253,7 +273,7 @@ const ComparisonPage = () => {
                                         <td className="py-2 px-2 font-medium">{d.mine}</td>
                                         <td className="py-2 px-2 text-center">{d.countA}</td>
                                         <td className="py-2 px-2 text-center">{d.countB}</td>
-                                        <td className={`py-2 px-2 text-center font-bold ${d.percentageChange > 0 ? 'text-red-500' : 'text-green-500'}`}>{d.percentageChange.toFixed(1)}%</td>
+                                        <td className={`py-2 px-2 text-center font-semibold ${d.percentageChange > 0 ? 'text-red-500' : 'text-green-500'}`}>{d.percentageChange.toFixed(1)}%</td>
                                         <td className="py-2 px-2"><VarianceBar value={d.percentageChange} /></td>
                                     </tr>
                                 ))}
@@ -280,26 +300,26 @@ const ComparisonPage = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
-                     <h3 className="font-semibold mb-3 text-base flex items-center gap-2"><Award size={18} className="text-green-500" /> Most Improved Mines</h3>
+            <div className="flex gap-6 overflow-x-auto pb-4 -mb-4 md:grid md:grid-cols-2">
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex-shrink-0 w-5/6 sm:w-2/3 md:w-auto">
+                     <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><Award size={18} className="text-green-500" /> Most Improved Mines</h3>
                      <ul className="space-y-2">
                         {rankings.mostImproved.map(d => (
                             <li key={d.mine} className="flex justify-between items-center text-sm">
                                 <span className="font-medium">{d.mine}</span>
-                                <span className="font-bold text-green-500">{d.percentageChange.toFixed(1)}%</span>
+                                <span className="font-semibold text-green-500">{d.percentageChange.toFixed(1)}%</span>
                             </li>
                         ))}
                          {rankings.mostImproved.length === 0 && <p className="text-sm text-light-subtle-text">No mines showed improvement in this period.</p>}
                      </ul>
                 </div>
-                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
-                    <h3 className="font-semibold mb-3 text-base flex items-center gap-2"><AlertCircle size={18} className="text-red-500" /> Mines Needing Attention</h3>
+                <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md flex-shrink-0 w-5/6 sm:w-2/3 md:w-auto">
+                    <h3 className="font-semibold text-base mb-3 flex items-center gap-2"><AlertCircle size={18} className="text-red-500" /> Mines Needing Attention</h3>
                      <ul className="space-y-2">
                         {rankings.needsAttention.map(d => (
                             <li key={d.mine} className="flex justify-between items-center text-sm">
                                 <span className="font-medium">{d.mine}</span>
-                                <span className="font-bold text-red-500">+{d.percentageChange.toFixed(1)}%</span>
+                                <span className="font-semibold text-red-500">+{d.percentageChange.toFixed(1)}%</span>
                             </li>
                         ))}
                         {rankings.needsAttention.length === 0 && <p className="text-sm text-light-subtle-text">No mines showed a negative trend in this period.</p>}
@@ -307,6 +327,35 @@ const ComparisonPage = () => {
                 </div>
             </div>
 
+            {isCustomDateModalOpen && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                     <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-lg">
+                        <div className="p-4 border-b flex justify-between items-center">
+                            <h3 className="font-semibold text-lg">Select Custom Date Range</h3>
+                            <button onClick={() => setIsCustomDateModalOpen(false)}><XIcon size={20} /></button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <label className="font-semibold text-sm mb-1 block">Period A</label>
+                                <div className="flex gap-2">
+                                    <input type="date" value={customDates.a_start} onChange={e => setCustomDates(p => ({...p, a_start: e.target.value}))} className="w-full p-2 text-sm rounded-md border dark:bg-dark-background dark:border-dark-border" />
+                                    <input type="date" value={customDates.a_end} onChange={e => setCustomDates(p => ({...p, a_end: e.target.value}))} className="w-full p-2 text-sm rounded-md border dark:bg-dark-background dark:border-dark-border" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="font-semibold text-sm mb-1 block">Period B</label>
+                                <div className="flex gap-2">
+                                    <input type="date" value={customDates.b_start} onChange={e => setCustomDates(p => ({...p, b_start: e.target.value}))} className="w-full p-2 text-sm rounded-md border dark:bg-dark-background dark:border-dark-border" />
+                                    <input type="date" value={customDates.b_end} onChange={e => setCustomDates(p => ({...p, b_end: e.target.value}))} className="w-full p-2 text-sm rounded-md border dark:bg-dark-background dark:border-dark-border" />
+                                </div>
+                            </div>
+                        </div>
+                         <div className="p-4 border-t bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+                            <button onClick={handleCustomDateApply} className="bg-light-primary text-white font-semibold py-2 px-4 rounded-md text-sm">Apply Dates</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

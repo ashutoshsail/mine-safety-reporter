@@ -16,7 +16,7 @@ const KpiCard = ({ title, value, change, changeType }) => (
     <div className="bg-light-background dark:bg-dark-background p-4 rounded-lg shadow-md flex-1 text-center flex-shrink-0 w-2/3 sm:w-1/3 md:w-auto">
         <h4 className="text-sm font-medium text-light-subtle-text dark:text-dark-subtle-text">{title}</h4>
         <p className="text-3xl font-bold my-1">{value}</p>
-        <div className={`flex items-center justify-center text-sm ${changeType === 'good' ? 'text-green-500' : 'text-red-500'}`}>
+        <div className={`flex items-center justify-center text-sm font-semibold ${changeType === 'good' ? 'text-green-500' : 'text-red-500'}`}>
             {changeType === 'good' ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
             <span className="ml-1">{change}% vs previous period</span>
         </div>
@@ -56,7 +56,7 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
 
     return (
         <div className="relative" ref={ref}>
-            <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-sm font-semibold bg-light-card dark:bg-dark-card px-3 py-1.5 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700">
+            <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-sm font-medium bg-light-card dark:bg-dark-card px-3 py-1.5 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700">
                 <span>{getDisplayText()}</span>
                 <ChevronDown size={16} className="text-light-subtle-text" />
             </button>
@@ -64,7 +64,7 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
                 <div className="absolute top-full mt-2 left-0 bg-light-card dark:bg-dark-card border dark:border-dark-border rounded-lg shadow-xl w-56 z-20">
                     <ul className="max-h-60 overflow-y-auto text-sm p-1">
                         {!isSingleSelect && (
-                            <li className="px-2 py-1.5 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onSelectAll}>
+                            <li className="px-2 py-1.5 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onSelectAll}>
                                 {isAllSelected ? 'Deselect All' : 'Select All'}
                             </li>
                         )}
@@ -245,10 +245,8 @@ const ExecutiveDashboardPage = () => {
 
     return (
         <div className="space-y-4">
-            <h1 className="text-2xl font-semibold">Executive Dashboard</h1>
-            
-            <div className="sticky top-2 z-30">
-                <div className="flex items-center justify-center gap-2 md:gap-4 p-2 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm rounded-full shadow-lg max-w-lg mx-auto">
+            <div className="sticky top-4 z-30">
+                <div className="flex items-center justify-center gap-2 md:gap-4 p-2 bg-light-card dark:bg-dark-card rounded-full shadow-lg max-w-lg mx-auto">
                     <FilterPill label="Period" options={periodOptions} selected={period} onSelect={handlePeriodSelect} isSingleSelect={true} />
                     <FilterPill label="Mines" options={MINES} selected={selectedMines} onSelect={handleMineSelect} onSelectAll={handleSelectAllMines} isAllSelected={areAllMinesSelected} />
                     <FilterPill label="Types" options={INCIDENT_TYPES} selected={selectedTypes} onSelect={handleTypeSelect} onSelectAll={handleSelectAllTypes} isAllSelected={areAllTypesSelected} />
@@ -283,7 +281,7 @@ const ExecutiveDashboardPage = () => {
                                 <h3 className="font-semibold text-base">Individual Mine Analysis</h3>
                                 <div className="flex items-center gap-1">
                                     <button onClick={prevMine} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronLeft size={16} /></button>
-                                    <span className="text-sm font-semibold w-20 text-center">{selectedMines[pieChartMineIndex] || 'N/A'}</span>
+                                    <span className="text-sm font-medium w-20 text-center">{selectedMines[pieChartMineIndex] || 'N/A'}</span>
                                     <button onClick={nextMine} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><ChevronRight size={16} /></button>
                                 </div>
                             </div>

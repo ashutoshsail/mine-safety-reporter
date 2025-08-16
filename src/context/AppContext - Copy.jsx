@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, query, orderBy, setDoc, where, getDocs } from 'firebase/firestore';
-import { generateMockData, generateIncidentId } from '../utils/mockData';
+import { generateIncidentId } from '../utils/mockData';
 import { format } from 'date-fns';
 import { AuthContext } from './AuthContext';
 import { ConfigContext } from './ConfigContext';
@@ -12,7 +12,7 @@ export const ACCIDENT_TYPES = ['Reportable', 'Serious Bodily', 'Fatal', 'Lost Ti
 
 export const AppProvider = ({ children }) => {
   const { currentUser } = useContext(AuthContext);
-  const { MINES, SECTIONS, INCIDENT_TYPES } = useContext(ConfigContext);
+  const { MINES } = useContext(ConfigContext);
   const [incidents, setIncidents] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,22 +21,12 @@ export const AppProvider = ({ children }) => {
   const [navPreference, setNavPreference] = useState(localStorage.getItem('navPreference') || 'fab');
   const [demoMode, setDemoMode] = useState(localStorage.getItem('demoMode') === 'true');
   const [localDemoIncidents, setLocalDemoIncidents] = useState([]);
-  const [localDemoHoursWorked, setLocalDemoHoursWorked] = useState({});
 
   const setDemoModeAndUpdateStorage = (isDemo) => {
     setDemoMode(isDemo);
     localStorage.setItem('demoMode', isDemo);
-    if (isDemo) {
-      // Ensure configs are loaded before generating data
-      if (MINES.length > 0 && SECTIONS.length > 0 && INCIDENT_TYPES.length > 0) {
-        const liveConfigs = { mines: MINES, sections: SECTIONS, incidentTypes: INCIDENT_TYPES };
-        const { incidents: demoIncidents, hoursWorked: demoHours } = generateMockData(liveConfigs);
-        setLocalDemoIncidents(demoIncidents);
-        setLocalDemoHoursWorked(demoHours);
-      }
-    } else {
-      setLocalDemoIncidents([]);
-      setLocalDemoHoursWorked({});
+    if (!isDemo) {
+        setLocalDemoIncidents([]);
     }
   };
 
@@ -66,8 +56,8 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentUser) {
-      setLoading(false);
-      return; 
+        setLoading(false);
+        return; 
     }
     
     const fetchUserDetails = async () => {
@@ -107,7 +97,7 @@ export const AppProvider = ({ children }) => {
       reporterName: user.name,
       id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
       status: 'Open',
-      daysLost: incidentData.daysLost || 0,
+      mandaysLost: incidentData.type.toLowerCase().includes('lost') ? 0 : null,
       comments: [],
       history: [{ user: user.name, action: 'Created Report', timestamp: new Date().toISOString() }],
       createdAt: serverTimestamp(),
@@ -115,11 +105,11 @@ export const AppProvider = ({ children }) => {
     };
     
     if (ACCIDENT_TYPES.some(accType => incidentData.type.toLowerCase().includes(accType.toLowerCase()))) {
-      const dateStr = format(new Date(incidentData.date), 'yyyy-MM-dd');
-      const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
-      await setDoc(dailySubmissionsDoc, {
-        [incidentData.mine]: { status: 'Accident', submittedAt: new Date().toISOString(), submittedBy: user.name }
-      }, { merge: true });
+        const dateStr = format(new Date(incidentData.date), 'yyyy-MM-dd');
+        const dailySubmissionsDoc = doc(db, 'dailySubmissions', dateStr);
+        await setDoc(dailySubmissionsDoc, {
+            [incidentData.mine]: { status: 'Accident', submittedAt: new Date().toISOString(), submittedBy: user.name }
+        }, { merge: true });
     }
 
     const incidentsCollection = collection(db, 'incidents');
@@ -163,24 +153,13 @@ export const AppProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     incidents: demoMode ? [...incidents, ...localDemoIncidents] : incidents,
-    hoursWorked: demoMode ? localDemoHoursWorked : {},
     allUsers,
-    loading,
-    addIncident,
-    updateIncident,
-    addComment,
-    submitNoAccident,
-    user,
-    theme,
-    toggleTheme,
-    navPreference,
-    updateNavPreference,
-    updateUserLastSelectedMine,
-    getUserLastSelectedMine,
-    demoMode,
-    setDemoMode: setDemoModeAndUpdateStorage,
+    loading, addIncident, updateIncident, addComment, submitNoAccident,
+    user, theme, toggleTheme, navPreference, updateNavPreference,
+    updateUserLastSelectedMine, getUserLastSelectedMine,
+    demoMode, setDemoMode: setDemoModeAndUpdateStorage,
     setLocalDemoIncidents,
-  }), [incidents, localDemoIncidents, localDemoHoursWorked, allUsers, loading, user, theme, navPreference, demoMode]);
+  }), [incidents, localDemoIncidents, allUsers, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

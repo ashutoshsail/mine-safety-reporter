@@ -1,6 +1,7 @@
-import { subDays, format, subMonths, startOfMonth } from 'date-fns';
+import { subDays, format } from 'date-fns';
 
 // These lists are no longer exported, as the app now gets this data from Firestore.
+const REPORTERS = ["Rakesh Sharma", "Sunita Williams", "Kalpana Chawla", "Vikram Sarabhai", "Homi Bhabha"];
 const LOCATIONS = ["Main Haul Road", "Workshop Bay 3", "Processing Plant Sector A", "Mine Face 7", "Conveyor Belt Junction", "Substation 2"];
 const DESCRIPTIONS = [
     "Minor slip and fall on a wet surface near the wash plant.",
@@ -23,21 +24,8 @@ export const generateIncidentId = (mine, type, date) => {
 
 // This function now receives the live config from the Admin Panel
 const createIncident = (type, mine, section, referenceDate) => {
-    const incidentDate = subDays(referenceDate, Math.floor(Math.random() * 730)); // Incidents from last 2 years for YoY data
-
-    // NEW: More realistic logic for daysLost based on incident type
-    let daysLost = 0;
-    const lowerCaseType = type.toLowerCase();
-
-    if (!lowerCaseType.includes('near miss') && !lowerCaseType.includes('high potential')) {
-    // If it's any kind of injury/accident, assign daysLost.
-    if (lowerCaseType.includes('fatality')) {
-        daysLost = 6000; // Standard high value for fatalities
-    } else {
-        daysLost = Math.floor(Math.random() * 45) + 1; // 1 to 45 days for other injuries
-    }
-}
-
+    const incidentDate = subDays(referenceDate, Math.floor(Math.random() * 365));
+    
     return {
         id: generateIncidentId(mine, type, incidentDate),
         reporterName: "Demo User",
@@ -50,30 +38,12 @@ const createIncident = (type, mine, section, referenceDate) => {
         description: DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)],
         victims: [],
         status: Math.random() > 0.3 ? 'Closed' : 'Open',
-        daysLost: daysLost, // MODIFIED: Renamed from mandaysLost and using new logic
+        mandaysLost: type.toLowerCase().includes('lost') ? Math.floor(Math.random() * 30) : null,
         photos: [],
         comments: [],
         history: [{ user: "System", action: "Created Demo Report", timestamp: incidentDate.toISOString() }],
         createdAt: incidentDate,
     };
-};
-
-// NEW: Function to generate monthly hours worked for each mine
-const generateHoursWorked = (mines, referenceDate) => {
-    const hoursData = {};
-    mines.forEach(mine => {
-        hoursData[mine] = {};
-        // Generate data for the last 24 months to support YoY comparisons
-        for (let i = 0; i < 24; i++) {
-            const monthDate = subMonths(startOfMonth(referenceDate), i);
-            const monthKey = format(monthDate, 'yyyy-MM');
-            // Simulate realistic work hours with slight monthly variance
-            const baseHours = 45000;
-            const variance = (Math.random() - 0.5) * 10000; // +/- 5000 hours
-            hoursData[mine][monthKey] = Math.round(baseHours + variance);
-        }
-    });
-    return hoursData;
 };
 
 export const generateMockData = (liveConfigs) => {
@@ -82,20 +52,16 @@ export const generateMockData = (liveConfigs) => {
     const { mines, sections, incidentTypes } = liveConfigs;
 
     if (!mines || mines.length === 0 || !sections || sections.length === 0 || !incidentTypes || incidentTypes.length === 0) {
-        return { incidents: [], hoursWorked: {} }; // Return empty structure
+        return [];
     }
 
-    // Generate 350 incidents, distributed across the available types
-    for (let i = 0; i < 350; i++) {
+    // Generate 250 incidents, distributed across the available types
+    for (let i = 0; i < 250; i++) {
         const type = incidentTypes[i % incidentTypes.length];
         const mine = mines[i % mines.length];
         const section = sections[i % sections.length];
         incidents.push(createIncident(type, mine, section, referenceDate));
     }
-
-    // NEW: Generate the hours worked data
-    const hoursWorked = generateHoursWorked(mines, referenceDate);
-
-    // MODIFIED: Return an object with both incidents and hoursWorked
-    return { incidents, hoursWorked };
+    
+    return incidents;
 };

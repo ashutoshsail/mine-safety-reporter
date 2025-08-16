@@ -32,14 +32,13 @@ const ReportIncidentPage = () => {
         date: new Date().toISOString().split('T')[0],
         time: new Date().toTimeString().slice(0, 5),
         type: INCIDENT_TYPES.length > 0 ? INCIDENT_TYPES[0] : '',
-        reason: 'Unsafe Act',
+        reason: 'Unsafe Act', // New field
         location: '',
         description: '',
         victims: [],
         incidentCause: '',
         immediateAction: '',
         photos: [],
-        // MODIFIED: daysLost is removed from the initial state
     });
     const [newIncident, setNewIncident] = useState(null);
     const pdfRef = useRef();
@@ -61,7 +60,7 @@ const ReportIncidentPage = () => {
         }
     }, [availableSections, formData.mine]);
 
-    const isInjuryIncident = !['Near Miss', 'High Potential Incident'].includes(formData.type);
+    const isInjuryIncident = !['Near-miss', 'High Potential Incident'].includes(formData.type);
 
     const handleInputChange = useCallback((e) => {
         const { name, value } = e.target;
@@ -93,7 +92,6 @@ const ReportIncidentPage = () => {
         else if (step === 2) {
             const finalData = { ...formData };
             if (formData.sectionName === 'Other') finalData.sectionName = formData.otherSection;
-            // MODIFIED: daysLost logic is removed from submission
             const createdIncident = await addIncident(finalData);
             setNewIncident(createdIncident);
             setStep(3);
@@ -118,7 +116,7 @@ const ReportIncidentPage = () => {
             <div className="bg-light-card dark:bg-dark-card p-4 sm:p-6 rounded-lg shadow-md">
                 {step === 1 && (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pb-28">
                             <FormField label="Reporter Name"><input type="text" name="reporterName" value={formData.reporterName} readOnly className="w-full bg-slate-200 dark:bg-slate-800 p-2 rounded-md text-sm cursor-not-allowed" /></FormField>
                             <FormField label="Incident Type">
                                 <CustomSelect name="type" value={formData.type} onChange={handleInputChange} options={INCIDENT_TYPES} />
@@ -127,7 +125,7 @@ const ReportIncidentPage = () => {
                                 <CustomSelect name="mine" value={formData.mine} onChange={handleInputChange} options={activeMines.map(m => m.name)} />
                             </FormField>
                             <FormField label="Section">
-                                <CustomSelect name="sectionName" value={formData.sectionName} onChange={handleInputChange} options={[...availableSections.map(s => s.name), 'Other']} disabled={availableSections.length === 0} />
+                                <CustomSelect name="sectionName" value={formData.sectionName} onChange={handleInputChange} options={availableSections.map(s => s.name)} disabled={availableSections.length === 0} />
                             </FormField>
                             {formData.sectionName === 'Other' && <div className="col-span-2"><FormField label="Other Section Name"><input type="text" name="otherSection" value={formData.otherSection} onChange={handleInputChange} className={inputClass} required /></FormField></div>}
                             <FormField label="Date"><input type="date" name="date" value={formData.date} onChange={handleInputChange} className={inputClass} /></FormField>
@@ -137,39 +135,40 @@ const ReportIncidentPage = () => {
                             </FormField>
                             <div className="col-span-2"><FormField label="Location"><input type="text" name="location" value={formData.location} onChange={handleInputChange} className={inputClass} required /></FormField></div>
                             <div className="col-span-2"><FormField label="Description"><textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" className={inputClass} required></textarea></FormField></div>
-                            
+                        
                             <div className="col-span-2 border-t border-light-border dark:border-dark-border pt-4">
-                               <h3 className="font-semibold mb-2 text-base">Details of Involved/Injured</h3>
-                               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
-                                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                                       <div className="col-span-2 sm:col-span-1"><FormField label="Name"><input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Person's Name" className={inputClass} /></FormField></div>
-                                       {isInjuryIncident && <div className="col-span-2 sm:col-span-1"><FormField label="Age"><input type="number" name="age" value={currentVictim.age} onChange={handleVictimChange} placeholder="Age" className={inputClass} required={isInjuryIncident} /></FormField></div>}
-                                       <div className="col-span-2 sm:col-span-1"><FormField label="Category"><CustomSelect name="category" value={currentVictim.category} onChange={handleVictimChange} options={['Regular', 'Contractual']} /></FormField></div>
-                                       <div className="col-span-2 sm:col-span-1"><FormField label="Form B No."><input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} /></FormField></div>
-                                       {currentVictim.category === 'Contractual' && (
-                                           <>
-                                               <div className="col-span-2 sm:col-span-1"><FormField label="Contractor's Name"><input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} /></FormField></div>
-                                               <div className="col-span-2 sm:col-span-1"><FormField label="PO No."><input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} /></FormField></div>
-                                           </>
-                                       )}
-                                   </div>
-                                   <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-light-status-success' : 'bg-light-accent'}`}>
-                                       {victimFeedback ? <><Check size={16}/> Added</> : <><UserPlus size={16}/> Add Person</>}
-                                   </button>
-                               </div>
-                               {formData.victims.map((v, i) => (
-                                   <div key={i} className="flex items-center justify-between p-2 mt-2 bg-slate-100 dark:bg-slate-700 rounded-md text-sm">
-                                       <span>{v.name} ({v.category})</span>
-                                       <button type="button" onClick={() => removeVictim(i)}><Trash2 size={14} className="text-light-status-danger"/></button>
-                                   </div>
-                               ))}
-                           </div>
-                           <div className="col-span-2 border-t border-light-border dark:border-dark-border pt-4 space-y-3">
-                               <FormField label="Cause of Incident (Optional)"><textarea name="incidentCause" value={formData.incidentCause} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
-                               <FormField label="Immediate Action Taken (Optional)"><textarea name="immediateAction" value={formData.immediateAction} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
-                               <FormField label="Upload Photos"><label className="cursor-pointer bg-light-secondary hover:bg-light-secondary/90 text-white font-semibold px-3 py-2 rounded-md text-sm flex items-center gap-2 w-max"><Upload size={14} /><span>Choose Files</span><input type="file" multiple onChange={handlePhotoUpload} className="hidden" accept="image/*" /></label></FormField>
-                               {formData.photos.length > 0 && <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">{formData.photos.map((photo, index) => (<div key={index} className="relative"><img src={photo.url} alt={photo.name} className="w-full h-20 object-cover rounded-md" /><button onClick={() => removePhoto(index)} className="absolute -top-1 -right-1 bg-light-status-danger text-white rounded-full p-0.5"><X size={12} /></button></div>))}</div>}
-                           </div>
+                                <h3 className="font-semibold mb-2 text-base">Details of Involved/Injured</h3>
+                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                        <div className="col-span-2 sm:col-span-1"><FormField label="Name"><input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Person's Name" className={inputClass} /></FormField></div>
+                                        {isInjuryIncident && <div className="col-span-2 sm:col-span-1"><FormField label="Age"><input type="number" name="age" value={currentVictim.age} onChange={handleVictimChange} placeholder="Age" className={inputClass} required /></FormField></div>}
+                                        <div className="col-span-2 sm:col-span-1"><FormField label="Category"><CustomSelect name="category" value={currentVictim.category} onChange={handleVictimChange} options={['Regular', 'Contractual']} /></FormField></div>
+                                        <div className="col-span-2 sm:col-span-1"><FormField label="Form B No."><input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} /></FormField></div>
+                                        {currentVictim.category === 'Contractual' && (
+                                            <>
+                                                <div className="col-span-2 sm:col-span-1"><FormField label="Contractor's Name"><input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} /></FormField></div>
+                                                <div className="col-span-2 sm:col-span-1"><FormField label="PO No."><input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} /></FormField></div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-light-status-success' : 'bg-light-accent'}`}>
+                                        {victimFeedback ? <><Check size={16}/> Added</> : <><UserPlus size={16}/> Add Person</>}
+                                    </button>
+                                </div>
+                                {formData.victims.map((v, i) => (
+                                    <div key={i} className="flex items-center justify-between p-2 mt-2 bg-slate-100 dark:bg-slate-700 rounded-md text-sm">
+                                        <span>{v.name} ({v.category})</span>
+                                        <button type="button" onClick={() => removeVictim(i)}><Trash2 size={14} className="text-light-status-danger"/></button>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="col-span-2 border-t border-light-border dark:border-dark-border pt-4 space-y-3">
+                                <FormField label="Cause of Incident (Optional)"><textarea name="incidentCause" value={formData.incidentCause} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
+                                <FormField label="Immediate Action Taken (Optional)"><textarea name="immediateAction" value={formData.immediateAction} onChange={handleInputChange} rows="2" className={inputClass}></textarea></FormField>
+                                <FormField label="Upload Photos"><label className="cursor-pointer bg-light-secondary hover:bg-light-secondary/90 text-white font-semibold px-3 py-2 rounded-md text-sm flex items-center gap-2 w-max"><Upload size={14} /><span>Choose Files</span><input type="file" multiple onChange={handlePhotoUpload} className="hidden" accept="image/*" /></label></FormField>
+                                {formData.photos.length > 0 && <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">{formData.photos.map((photo, index) => (<div key={index} className="relative"><img src={photo.url} alt={photo.name} className="w-full h-20 object-cover rounded-md" /><button onClick={() => removePhoto(index)} className="absolute -top-1 -right-1 bg-light-status-danger text-white rounded-full p-0.5"><X size={12} /></button></div>))}</div>}
+                            </div>
 
                             <div className="col-span-2 mt-6 flex justify-center border-t border-light-border dark:border-dark-border pt-4">
                                 <button type="submit" className="bg-light-accent hover:bg-light-accent/90 text-white font-semibold px-6 py-2.5 rounded-md flex items-center gap-2 text-sm">

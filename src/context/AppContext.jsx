@@ -27,7 +27,6 @@ export const AppProvider = ({ children }) => {
     setDemoMode(isDemo);
     localStorage.setItem('demoMode', isDemo);
     if (isDemo) {
-      // Ensure configs are loaded before generating data
       if (MINES.length > 0 && SECTIONS.length > 0 && INCIDENT_TYPES.length > 0) {
         const liveConfigs = { mines: MINES, sections: SECTIONS, incidentTypes: INCIDENT_TYPES };
         const { incidents: demoIncidents, hoursWorked: demoHours } = generateMockData(liveConfigs);
@@ -83,10 +82,34 @@ export const AppProvider = ({ children }) => {
     };
     fetchUserDetails();
 
-    const incidentsQuery = query(collection(db, 'incidents'), where("isDemo", "!=", true), orderBy('createdAt', 'desc'));
+    const incidentsQuery = query(collection(db, 'incidents'), orderBy('createdAt', 'desc'));
     
     const unsubscribeIncidents = onSnapshot(incidentsQuery, (snapshot) => {
-      setIncidents(snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id })));
+      // DEBUGGING LOG: This will fire every time the database changes.
+      console.log("%c[AppContext] 5. EPICENTER: Firestore onSnapshot fired. A new wave of data is coming.", "color: red; font-weight: bold;");
+
+      setIncidents(prevIncidents => {
+        let newIncidents = [...prevIncidents];
+        snapshot.docChanges().forEach((change) => {
+          const data = { ...change.doc.data(), docId: change.doc.id };
+          if (change.type === "added") {
+            if (!newIncidents.some(inc => inc.docId === data.docId)) {
+                newIncidents.push(data);
+            }
+          }
+          if (change.type === "modified") {
+            const index = newIncidents.findIndex(inc => inc.docId === data.docId);
+            if (index > -1) {
+              newIncidents[index] = data;
+            }
+          }
+          if (change.type === "removed") {
+            newIncidents = newIncidents.filter(inc => inc.docId !== data.docId);
+          }
+        });
+        newIncidents.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        return newIncidents;
+      });
       setLoading(false);
     });
 
@@ -107,7 +130,7 @@ export const AppProvider = ({ children }) => {
       reporterName: user.name,
       id: generateIncidentId(incidentData.mine, incidentData.type, new Date(incidentData.date)),
       status: 'Open',
-      daysLost: incidentData.daysLost || 0,
+      daysLost: 0,
       comments: [],
       history: [{ user: user.name, action: 'Created Report', timestamp: new Date().toISOString() }],
       createdAt: serverTimestamp(),
@@ -128,15 +151,19 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateIncident = async (docId, updates) => {
+    // DEBUGGING LOG: This will fire if we are saving to the database.
+    console.log(`%c[AppContext] 4. SAVING: updateIncident called for docId: ${docId}`, "color: orange;");
+
     const incidentDoc = doc(db, 'incidents', docId);
     const allIncidents = [...incidents, ...localDemoIncidents];
     const incidentToUpdate = allIncidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
-    const newHistory = [...incidentToUpdate.history, { user: user.name, action: `Updated fields: ${Object.keys(updates).join(', ')}`, timestamp: new Date().toISOString() }];
+    
+    const newHistory = [...(incidentToUpdate.history || []), { user: user.name, action: `Updated fields: ${Object.keys(updates).join(', ')}`, timestamp: new Date().toISOString() }];
     await updateDoc(incidentDoc, { ...updates, history: newHistory });
   };
 
-  const addComment = async (docId, commentText, tags, taggedUsers) => {
+  const addComment = async (docId, commentText, tags) => {
     const incidentDoc = doc(db, 'incidents', docId);
     const allIncidents = [...incidents, ...localDemoIncidents];
     const incidentToUpdate = allIncidents.find(inc => inc.docId === docId);
@@ -146,10 +173,9 @@ export const AppProvider = ({ children }) => {
         text: commentText, 
         timestamp: new Date().toISOString(), 
         tags: tags || [],
-        taggedUsers: taggedUsers || []
     };
     const newComments = [...(incidentToUpdate.comments || []), newComment];
-    const newHistory = [...incidentToUpdate.history, { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
+    const newHistory = [...(incidentToUpdate.history || []), { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
     await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
   };
 
@@ -162,7 +188,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = useMemo(() => ({
-    incidents: demoMode ? [...incidents, ...localDemoIncidents] : incidents,
+    incidents: demoMode ? [...localDemoIncidents, ...incidents] : incidents,
     hoursWorked: demoMode ? localDemoHoursWorked : {},
     allUsers,
     loading,
@@ -179,7 +205,6 @@ export const AppProvider = ({ children }) => {
     getUserLastSelectedMine,
     demoMode,
     setDemoMode: setDemoModeAndUpdateStorage,
-    setLocalDemoIncidents,
   }), [incidents, localDemoIncidents, localDemoHoursWorked, allUsers, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

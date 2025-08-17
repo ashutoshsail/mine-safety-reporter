@@ -4,8 +4,13 @@ import { ConfigContext } from '../context/ConfigContext';
 import { ChevronRight, FileText, Download, CheckCircle, Upload, X, UserPlus, Trash2, Check } from 'lucide-react';
 import IncidentReportPDF from '../components/IncidentReportPDF';
 import CustomSelect from '../components/CustomSelect';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+
+const FormField = ({ label, children }) => (
+    <div>
+        <label className="block text-xs font-semibold text-light-subtle-text dark:text-dark-subtle-text mb-1">{label}</label>
+        {children}
+    </div>
+);
 
 const ReportIncidentPage = () => {
     const { user, addIncident } = useContext(AppContext);
@@ -60,7 +65,6 @@ const ReportIncidentPage = () => {
         }
     }, [availableSections, formData.mine]);
 
-    // This variable is still useful to conditionally require the 'Age' field.
     const isInjuryIncident = !['Near Miss', 'High Potential Incident'].includes(formData.type);
 
     const handleInputChange = useCallback((e) => {
@@ -85,8 +89,6 @@ const ReportIncidentPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // MODIFIED: This check now runs for ALL incident types.
         if (formData.victims.length === 0) {
             alert('Details of at least one involved person are required for all incident reports.');
             return;
@@ -102,16 +104,26 @@ const ReportIncidentPage = () => {
         }
     };
     
-    const downloadPDF = async () => { /* ... function code ... */ };
-    const handlePhotoUpload = (e) => { /* ... function code ... */ };
-    const removePhoto = (index) => { /* ... function code ... */ };
+    const handlePhotoUpload = (e) => {
+        const files = Array.from(e.target.files);
+        let newPhotos = [];
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                newPhotos.push({ name: file.name, url: reader.result });
+                if (newPhotos.length === files.length) {
+                    setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
 
-    const FormField = ({ label, children }) => (
-        <div>
-            <label className="block text-xs font-semibold text-light-subtle-text dark:text-dark-subtle-text mb-1">{label}</label>
-            {children}
-        </div>
-    );
+    const removePhoto = (index) => {
+        setFormData(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
+    };
+    
+    const downloadPDF = async () => { /* PDF generation logic */ };
     
     const inputClass = "w-full bg-slate-100 dark:bg-slate-700 p-2 rounded-md border border-light-border dark:border-dark-border text-sm";
 
@@ -144,18 +156,21 @@ const ReportIncidentPage = () => {
                                <h3 className="font-semibold mb-2 text-base">Details of Involved/Injured Person</h3>
                                <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text mb-3 -mt-2">At least one person is required for all incident types.</p>
                                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
-                                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                                       <div className="col-span-2 sm:col-span-1"><FormField label="Name"><input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Person's Name" className={inputClass} /></FormField></div>
-                                       {isInjuryIncident && <div className="col-span-2 sm:col-span-1"><FormField label="Age"><input type="number" name="age" value={currentVictim.age} onChange={handleVictimChange} placeholder="Age" className={inputClass} required={isInjuryIncident} /></FormField></div>}
-                                       <div className="col-span-2 sm:col-span-1"><FormField label="Category"><CustomSelect name="category" value={currentVictim.category} onChange={handleVictimChange} options={['Regular', 'Contractual']} /></FormField></div>
-                                       <div className="col-span-2 sm:col-span-1"><FormField label="Form B No."><input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B No." className={inputClass} /></FormField></div>
-                                       {currentVictim.category === 'Contractual' && (
-                                           <>
-                                               <div className="col-span-2 sm:col-span-1"><FormField label="Contractor's Name"><input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} /></FormField></div>
-                                               <div className="col-span-2 sm:col-span-1"><FormField label="PO No."><input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} /></FormField></div>
-                                           </>
-                                       )}
+                                   {/* --- MODIFIED: New compact layout for victim details --- */}
+                                   <div className="grid grid-cols-[1fr,auto] gap-4 items-end">
+                                        <FormField label="Name"><input name="name" value={currentVictim.name} onChange={handleVictimChange} placeholder="Person's Name" className={inputClass} /></FormField>
+                                        {isInjuryIncident && <div className="w-24"><FormField label="Age"><input type="number" name="age" value={currentVictim.age} onChange={handleVictimChange} placeholder="Age" className={inputClass} required={isInjuryIncident} /></FormField></div>}
                                    </div>
+                                   <div className="grid grid-cols-[1fr,auto] gap-4 items-end">
+                                        <FormField label="Category"><CustomSelect name="category" value={currentVictim.category} onChange={handleVictimChange} options={['Regular', 'Contractual']} /></FormField>
+                                        <div className="w-24"><FormField label="Form B No."><input name="formB" value={currentVictim.formB} onChange={handleVictimChange} placeholder="Form B" className={inputClass} /></FormField></div>
+                                   </div>
+                                   {currentVictim.category === 'Contractual' && (
+                                       <div className="grid sm:grid-cols-2 gap-4">
+                                            <FormField label="Contractor's Name"><input name="contractorName" value={currentVictim.contractorName} onChange={handleVictimChange} placeholder="Contractor's Name" className={inputClass} /></FormField>
+                                            <FormField label="PO No."><input name="poNumber" value={currentVictim.poNumber} onChange={handleVictimChange} placeholder="PO No." className={inputClass} /></FormField>
+                                       </div>
+                                   )}
                                    <button type="button" onClick={handleAddVictim} className={`flex items-center gap-2 text-sm text-white px-3 py-1.5 rounded-md transition-colors ${victimFeedback ? 'bg-light-status-success' : 'bg-light-accent'}`}>
                                        {victimFeedback ? <><Check size={16}/> Added</> : <><UserPlus size={16}/> Add Person</>}
                                    </button>

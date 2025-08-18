@@ -2,7 +2,7 @@ import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ChevronLeft, ChevronRight, X as XIcon, Smile, Info, TrendingUp, TrendingDown, ChevronDown, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Smile, Info, TrendingUp, TrendingDown, ChevronDown, Check } from 'lucide-react';
 import { subMonths, startOfMonth, format, eachMonthOfInterval, subDays } from 'date-fns';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
@@ -62,12 +62,15 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
             </button>
             {isOpen && (
                 <div className="absolute top-full mt-2 left-0 bg-light-card dark:bg-dark-card border dark:border-dark-border rounded-lg shadow-xl w-56 z-20">
-                    <ul className="max-h-60 overflow-y-auto text-sm p-1">
-                        {!isSingleSelect && (
-                            <li className="px-2 py-1.5 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={onSelectAll}>
+                    {!isSingleSelect && (
+                        <div className="flex justify-between items-center p-2 border-b dark:border-dark-border">
+                             <span className="text-sm font-semibold px-1">{label}</span>
+                             <button onClick={onSelectAll} className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">
                                 {isAllSelected ? 'Deselect All' : 'Select All'}
-                            </li>
-                        )}
+                            </button>
+                        </div>
+                    )}
+                    <ul className="max-h-60 overflow-y-auto text-sm p-1">
                         {options.map(option => (
                             <li key={option} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={() => onSelect(option)}>
                                 {!isSingleSelect && (
@@ -85,7 +88,6 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
     );
 };
 
-// --- Main Dashboard Component ---
 const ExecutiveDashboardPage = () => {
     const { incidents, hoursWorked, currentDate } = useContext(AppContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);

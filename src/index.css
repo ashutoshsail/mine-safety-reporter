@@ -2,36 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CRITICAL FIX: Prevent the main page from scrolling */
-html, body {
-    overflow: hidden;
+/* Custom Scrollbar Styling */
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e2e8f0; /* thumb track */
 }
 
-/* Custom scrollbar for better aesthetics */
+/* For Chrome, Safari, and Edge */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  width: 8px; /* Default thin width for mobile */
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-.dark ::-webkit-scrollbar-track {
-    background: #334155;
+  background: transparent; /* Make track invisible by default */
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 10px;
-}
-.dark ::-webkit-scrollbar-thumb {
-    background: #555;
+  background-color: #94a3b8; /* Light mode thumb color */
+  border-radius: 10px;
+  border: 2px solid #e2e8f0; /* Creates padding around thumb */
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
+/* Dark Mode Scrollbar Styles */
+.dark * {
+  scrollbar-color: #475569 #1e293b; /* thumb track */
 }
-.dark ::-webkit-scrollbar-thumb:hover {
-    background: #777;
+
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #475569; /* Dark mode thumb color */
+  border-color: #1e293b; /* Dark mode border color */
+}
+
+/* On larger screens (desktop), make the scrollbar permanent and wider */
+@media (min-width: 1024px) { /* lg breakpoint in Tailwind */
+  ::-webkit-scrollbar {
+    width: 14px;
+  }
+   ::-webkit-scrollbar-track {
+    background: #e2e8f0; /* Light mode track color */
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: #1e293b; /* Dark mode track color */
+  }
 }

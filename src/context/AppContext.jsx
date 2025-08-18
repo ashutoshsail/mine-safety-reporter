@@ -85,9 +85,6 @@ export const AppProvider = ({ children }) => {
     const incidentsQuery = query(collection(db, 'incidents'), orderBy('createdAt', 'desc'));
     
     const unsubscribeIncidents = onSnapshot(incidentsQuery, (snapshot) => {
-      // DEBUGGING LOG: This will fire every time the database changes.
-      console.log("%c[AppContext] 5. EPICENTER: Firestore onSnapshot fired. A new wave of data is coming.", "color: red; font-weight: bold;");
-
       setIncidents(prevIncidents => {
         let newIncidents = [...prevIncidents];
         snapshot.docChanges().forEach((change) => {
@@ -107,7 +104,12 @@ export const AppProvider = ({ children }) => {
             newIncidents = newIncidents.filter(inc => inc.docId !== data.docId);
           }
         });
-        newIncidents.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        
+        newIncidents.sort((a, b) => {
+            const timeA = a.createdAt?.toMillis() || Date.now();
+            const timeB = b.createdAt?.toMillis() || Date.now();
+            return timeB - timeA;
+        });
         return newIncidents;
       });
       setLoading(false);
@@ -146,20 +148,23 @@ export const AppProvider = ({ children }) => {
     }
 
     const incidentsCollection = collection(db, 'incidents');
-    const docRef = await addDoc(incidentsCollection, newIncident);
-    return { ...newIncident, docId: docRef.id };
+    try {
+        const docRef = await addDoc(incidentsCollection, newIncident);
+        return { ...newIncident, docId: docRef.id };
+    } catch (error) {
+        console.error("Error adding incident: ", error);
+        return null;
+    }
   };
 
-  const updateIncident = async (docId, updates) => {
-    // DEBUGGING LOG: This will fire if we are saving to the database.
-    console.log(`%c[AppContext] 4. SAVING: updateIncident called for docId: ${docId}`, "color: orange;");
-
+  const updateIncident = async (docId, updates, action) => {
     const incidentDoc = doc(db, 'incidents', docId);
     const allIncidents = [...incidents, ...localDemoIncidents];
     const incidentToUpdate = allIncidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
     
-    const newHistory = [...(incidentToUpdate.history || []), { user: user.name, action: `Updated fields: ${Object.keys(updates).join(', ')}`, timestamp: new Date().toISOString() }];
+    const actionMessage = action || `Updated fields: ${Object.keys(updates).join(', ')}`;
+    const newHistory = [...(incidentToUpdate.history || []), { user: user.name, action: actionMessage, timestamp: new Date().toISOString() }];
     await updateDoc(incidentDoc, { ...updates, history: newHistory });
   };
 
@@ -168,6 +173,7 @@ export const AppProvider = ({ children }) => {
     const allIncidents = [...incidents, ...localDemoIncidents];
     const incidentToUpdate = allIncidents.find(inc => inc.docId === docId);
     if (!incidentToUpdate) return;
+
     const newComment = { 
         user: user.name, 
         text: commentText, 
@@ -175,8 +181,21 @@ export const AppProvider = ({ children }) => {
         tags: tags || [],
     };
     const newComments = [...(incidentToUpdate.comments || []), newComment];
-    const newHistory = [...(incidentToUpdate.history || []), { user: user.name, action: 'Added a comment', timestamp: new Date().toISOString() }];
-    await updateDoc(incidentDoc, { comments: newComments, history: newHistory });
+    
+    const updates = { comments: newComments };
+    let historyMessage = 'Added a comment';
+
+    const statusTag = tags.find(tag => tag.startsWith("Mark as"));
+    if (statusTag) {
+        const newStatus = incidentToUpdate.status === 'Open' ? 'Closed' : 'Open';
+        updates.status = newStatus;
+        historyMessage = `Added a comment and changed status to ${newStatus}`;
+    }
+
+    const newHistory = [...(incidentToUpdate.history || []), { user: user.name, action: historyMessage, timestamp: new Date().toISOString() }];
+    updates.history = newHistory;
+
+    await updateDoc(incidentDoc, updates);
   };
 
   const submitNoAccident = async (mineName, date) => {
@@ -205,6 +224,7 @@ export const AppProvider = ({ children }) => {
     getUserLastSelectedMine,
     demoMode,
     setDemoMode: setDemoModeAndUpdateStorage,
+    ACCIDENT_TYPES, // MODIFIED: This line has been added to correctly export the variable.
   }), [incidents, localDemoIncidents, localDemoHoursWorked, allUsers, loading, user, theme, navPreference, demoMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

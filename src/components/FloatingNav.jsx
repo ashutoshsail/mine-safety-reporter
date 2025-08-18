@@ -39,10 +39,8 @@ const FloatingNav = memo(({ setRoute, currentRoute }) => {
             <div className="flex flex-col items-end gap-3">
               {baseNavItems.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => handleNavClick(item.id)}>
-                  {/* MODIFIED: Font weight changed from font-semibold to font-medium */}
                   <span className="bg-light-card dark:bg-dark-card px-3 py-1 rounded-md text-sm font-medium shadow-md whitespace-nowrap">{item.label}</span>
                   <button className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors ${currentRoute === item.id ? 'bg-light-accent text-white' : 'bg-light-card dark:bg-dark-card'}`}>
-                    {/* MODIFIED: Icon strokeWidth adjusted for a thinner look */}
                     <item.icon size={20} strokeWidth={1.5} />
                   </button>
                 </div>
@@ -51,14 +49,14 @@ const FloatingNav = memo(({ setRoute, currentRoute }) => {
           </div>
           <button 
             onClick={() => setIsOpen(!isOpen)} 
-            className="absolute bottom-0 right-0 w-auto h-16 bg-light-secondary dark:bg-dark-secondary text-white rounded-full flex items-center justify-center shadow-xl transform transition-transform duration-300 hover:scale-105 px-4"
+            // MODIFIED: Changed background color to the theme's accent color
+            className="absolute bottom-0 right-0 w-auto h-16 bg-light-accent dark:bg-dark-accent text-white rounded-full flex items-center justify-center shadow-xl transform transition-transform duration-300 hover:scale-105 px-4"
           >
             <div className="flex items-center justify-center gap-2">
               {isOpen ? 
                 <X size={24} strokeWidth={1.5} /> : 
                 <>
                   <Menu size={24} strokeWidth={1.5} />
-                  {/* MODIFIED: Font weight changed from font-semibold to font-normal */}
                   <span className="text-sm font-normal">More</span>
                 </>
               }

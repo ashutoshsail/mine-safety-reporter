@@ -1,53 +1,27 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
 
-const BackToTopButton = ({ scrollContainerRef }) => {
-    const [isVisible, setIsVisible] = useState(false);
-    const { navPreference } = useContext(AppContext);
+const BackToTopButton = ({ isVisible, scrollContainerRef }) => {
+  const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
 
-    useEffect(() => {
-        const container = scrollContainerRef.current;
-        if (!container) return;
-
-        const toggleVisibility = () => {
-            if (container.scrollTop > 300) {
-                setIsVisible(true);
-            } else {
-                setIsVisible(false);
-            }
-        };
-
-        container.addEventListener('scroll', toggleVisibility);
-        return () => {
-            container.removeEventListener('scroll', toggleVisibility);
-        };
-    }, [scrollContainerRef]);
-
-    const scrollToTop = () => {
-        scrollContainerRef.current?.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    };
-
-    const positionClass = navPreference === 'bottom' ? 'bottom-20' : 'bottom-4';
-
-    return (
-        <div className={`fixed ${positionClass} right-36 z-40 lg:hidden`}>
-            {isVisible && (
-                <button
-                    onClick={scrollToTop}
-                    className="bg-light-primary/80 hover:bg-light-primary text-white w-auto h-16 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 backdrop-blur-sm px-4"
-                >
-                    <div className="flex items-center justify-center gap-2">
-                        <ArrowUp size={20} />
-                        <span className="text-sm font-semibold">Top</span>
-                    </div>
-                </button>
-            )}
-        </div>
-    );
+  return (
+    <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <button 
+        onClick={scrollToTop}
+        className="bg-light-secondary hover:bg-light-secondary/90 dark:bg-dark-secondary dark:hover:bg-dark-secondary/90 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
+        aria-label="Scroll to top"
+      >
+        <ArrowUp size={24} />
+      </button>
+    </div>
+  );
 };
 
 export default BackToTopButton;

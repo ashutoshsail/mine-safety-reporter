@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { AppContext } from '../context/AppContext';
+
 
 const BackToTopButton = ({ isVisible, scrollContainerRef }) => {
+  const { navPreference } = useContext(AppContext);
   const scrollToTop = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
@@ -12,7 +15,7 @@ const BackToTopButton = ({ isVisible, scrollContainerRef }) => {
   };
 
   return (
-    <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    <div className={`fixed ${navPreference === 'bottom' ? 'bottom-20' : 'bottom-4'} left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <button 
         onClick={scrollToTop}
         className="bg-light-secondary hover:bg-light-secondary/90 dark:bg-dark-secondary dark:hover:bg-dark-secondary/90 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg"

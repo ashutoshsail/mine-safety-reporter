@@ -190,31 +190,33 @@ const HomePage = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md relative">
-                    <h2 className="text-base font-semibold mb-1">Report 'No Accident'</h2>
-                    <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text mb-3">Submit a "No Accident" report for the date selected above.</p>
-                    <form onSubmit={handleNoAccidentSubmit} className="flex gap-2">
-                        <select 
-                            value={selectedMine}
-                            onChange={(e) => setSelectedMine(e.target.value)}
-                            className="flex-grow bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm"
-                        >
-                            {MINES.map(mine => <option key={mine} value={mine}>{mine}</option>)}
-                        </select>
-                        <button type="submit" className="flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-3 py-2 rounded-md text-sm">
-                            <Send size={14} />
-                            <span>Submit</span>
-                        </button>
-                    </form>
-                    {submissionMessage && <p className="text-green-600 dark:text-green-400 text-sm mt-2">{submissionMessage}</p>}
-                    <CheckCircle className="absolute top-4 right-4 text-green-700 dark:text-green-400 size-10" />
+                    <div className="pr-16">
+                        <h2 className="text-base font-semibold mb-1">Report 'No Accident'</h2>
+                        <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text mb-3">Submit a "No Accident" report for the date selected above.</p>
+                        <form onSubmit={handleNoAccidentSubmit} className="flex gap-2">
+                            <select 
+                                value={selectedMine}
+                                onChange={(e) => setSelectedMine(e.target.value)}
+                                className="flex-grow bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm"
+                            >
+                                {MINES.map(mine => <option key={mine} value={mine}>{mine}</option>)}
+                            </select>
+                            <button type="submit" className="flex items-center justify-center gap-2 bg-light-primary hover:bg-light-primary/90 text-white font-semibold px-3 py-2 rounded-md text-sm">
+                                <Send size={14} />
+                                <span>Submit</span>
+                            </button>
+                        </form>
+                        {submissionMessage && <p className="text-green-600 dark:text-green-400 text-sm mt-2">{submissionMessage}</p>}
+                    </div>
+                    <CheckCircle className="absolute top-4 right-4 lg:right-6 text-green-700 dark:text-green-400 size-9" />
                 </div>
 
                 <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md relative">
-                    <div className="pr-12">
+                    <div className="pr-16">
                         <h2 className="text-base font-semibold mb-0.5">Safety Tip of the Day</h2>
                         <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text">{dailyTip}</p>
                     </div>
-                    <Lightbulb className="absolute top-4 right-4 text-amber-700 dark:text-amber-400 size-10" />
+                    <Lightbulb className="absolute top-4 right-4 lg:right-6 text-amber-700 dark:text-amber-400 size-10" />
                 </div>
             </div>
 

@@ -4,6 +4,7 @@ import { AuthContext } from './context/AuthContext';
 import { ConfigContext } from './context/ConfigContext';
 import Sidebar from './components/Sidebar';
 import FloatingNav from './components/FloatingNav';
+import BottomNav from './components/BottomNav';
 import BackToTopButton from './components/BackToTopButton';
 import HomePage from './pages/HomePage';
 import ReportIncidentPage from './pages/ReportIncidentPage';
@@ -21,7 +22,7 @@ const Header = ({ title, onMenuClick }) => (
     <button onClick={onMenuClick} className="flex-shrink-0 text-light-primary dark:text-dark-primary">
         <LogoIcon className="h-8 w-8" />
     </button>
-    <h1 className="text-base font-semibold truncate">{title}</h1>
+    <h1 className="text-lg font-medium text-slate-700 dark:text-slate-200">{title}</h1>
   </header>
 );
 
@@ -30,7 +31,7 @@ const BackButton = ({ onBack, disabled }) => {
     <button
       onClick={onBack}
       disabled={disabled}
-      className={`fixed top-5 right-5 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-300
+      className={`fixed top-5 right-5 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300
         bg-light-card dark:bg-dark-card shadow-md
         ${disabled
           ? 'opacity-50 cursor-not-allowed'
@@ -45,7 +46,7 @@ const BackButton = ({ onBack, disabled }) => {
 };
 
 function App() {
-  const { theme, user } = useContext(AppContext);
+  const { theme, user, navPreference } = useContext(AppContext);
   const { currentUser } = useContext(AuthContext);
   const { companyProfile } = useContext(ConfigContext);
   
@@ -121,6 +122,10 @@ function App() {
     }
   };
 
+  const mainContentPadding = navPreference === 'bottom'
+    ? "p-4 sm:p-6 pb-28 sm:pb-36"
+    : "p-4 sm:p-6 pb-12 sm:pb-20";
+
   return (
     <div className="flex h-screen bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text">
       <Sidebar 
@@ -129,6 +134,7 @@ function App() {
         pageTitle={currentPageTitle}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        navPreference={navPreference}
       />
       
       <main ref={mainContentRef} className="flex-1 lg:ml-64 relative overflow-y-auto pt-16 lg:pt-0">
@@ -141,7 +147,7 @@ function App() {
         <div className="lg:hidden fixed top-16 left-0 w-full h-6 bg-gradient-to-b from-light-background from-40% dark:from-dark-background to-transparent pointer-events-none z-10" />
 
         <BackButton onBack={handleBack} disabled={routeHistory.length <= 1} />
-        <div className="p-4 sm:p-6 pb-12 sm:pb-20">
+        <div className={mainContentPadding}>
           {/* --- DESKTOP-ONLY HEADER --- */}
           <div className="hidden lg:block mb-6">
             <h1 className="text-lg font-medium text-slate-700 dark:text-slate-200">
@@ -152,10 +158,18 @@ function App() {
           
           {renderPage()}
         </div>
-        <BackToTopButton isVisible={showBackToTop} scrollContainerRef={mainContentRef} />
+        <BackToTopButton 
+          isVisible={showBackToTop} 
+          scrollContainerRef={mainContentRef} 
+        />
       </main>
 
-      <FloatingNav currentRoute={currentRoute} setRoute={setRoute} />
+      {/* --- MOBILE NAVIGATION --- */}
+      {navPreference === 'fab' ? (
+        <FloatingNav currentRoute={currentRoute} setRoute={setRoute} />
+      ) : (
+        <BottomNav currentRoute={currentRoute} setRoute={setRoute} />
+      )}
     </div>
   );
 }

@@ -13,7 +13,7 @@ const navItems = [
   { id: 'comparison', icon: GitCompareArrows, label: 'Comparison' },
 ];
 
-const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen }) => {
+const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen, navPreference }) => {
   const { user } = useContext(AppContext);
   const { companyProfile } = useContext(ConfigContext);
 
@@ -43,7 +43,8 @@ const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen }) => {
       <aside 
         className={`fixed inset-y-0 left-0 z-40 flex flex-col w-64 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border
                    transform transition-transform duration-300 ease-in-out
-                   lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+                   lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                   ${navPreference === 'bottom' ? 'pb-16 lg:pb-0' : ''}`
         }
       >
         {/* Mobile close button sits in the top header */}
@@ -75,7 +76,7 @@ const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen }) => {
                       }}
                       className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors
                         ${isActive
-                          ? 'bg-light-primary/10 dark:bg-dark-primary/20 text-light-primary dark:text-dark-primary font-semibold text-base'
+                          ? 'bg-light-primary/10 dark:bg-dark-primary/20 text-light-primary dark:text-dark-primary font-medium text-base'
                           : isLogout
                             ? 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 font-medium text-sm'
                             : 'hover:bg-slate-100 dark:hover:bg-slate-700 font-medium text-sm'
@@ -95,7 +96,7 @@ const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen }) => {
           <div className="flex-shrink-0" style={{ paddingBottom: '15vh' }}>
              <div className="flex flex-col items-center text-center p-4 border-t border-light-border dark:border-dark-border">
                 <LogoIcon className="w-10 h-10 text-slate-400 dark:text-slate-500" />
-                <p className="text-sm font-bold mt-2">{companyProfile?.name || "Mines Safety App"}</p>
+                <p className="text-sm font-medium mt-2">{companyProfile?.name || "Mines Safety App"}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500">Version 1.0.0</p>
              </div>
           </div>

@@ -89,30 +89,30 @@ const UpdateModal = ({ incident, onClose }) => {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
             <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
                 <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="font-semibold text-lg">Update Report: {incident.id}</h3>
+                    <h3 className="font-medium text-lg">Update Report: {incident.id}</h3>
                 </div>
                 <div className="p-4 space-y-4 overflow-y-auto">
                     {feedbackMessage && (
-                        <div className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 text-sm font-semibold p-2 rounded-md text-center">
+                        <div className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 text-sm font-medium p-2 rounded-md text-center">
                             {feedbackMessage}
                         </div>
                     )}
                     {isLTI && (
                         <div>
-                            <h4 className="font-semibold text-sm mb-2">Update Days Lost</h4>
+                            <h4 className="font-medium text-sm mb-2">Update Days Lost</h4>
                             <div className="flex items-center gap-2 p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/50">
-                                <label className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">Days Lost:</label>
+                                <label className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Days Lost:</label>
                                 <input 
                                     type="number" 
                                     min="0"
                                     onFocus={(e) => e.target.select()}
                                     value={editableDaysLost} 
                                     onChange={(e) => { setEditableDaysLost(e.target.value); setIsDaysLostDirty(true); }}
-                                    className="w-24 bg-white dark:bg-slate-700 p-1 rounded-md border border-yellow-300 dark:border-yellow-700 text-sm font-semibold"
+                                    className="w-24 bg-white dark:bg-slate-700 p-1 rounded-md border border-yellow-300 dark:border-yellow-700 text-sm font-medium"
                                     disabled={incident.status === 'Closed'}
                                 />
                                 {isDaysLostDirty && (
-                                    <button onClick={handleSaveDaysLost} className="text-xs bg-green-200 hover:bg-green-300 dark:bg-green-800 text-green-800 dark:text-green-100 font-bold p-2 rounded-md">
+                                    <button onClick={handleSaveDaysLost} className="text-xs bg-green-200 hover:bg-green-300 dark:bg-green-800 text-green-800 dark:text-green-100 font-medium p-2 rounded-md">
                                         Save
                                     </button>
                                 )}
@@ -120,7 +120,7 @@ const UpdateModal = ({ incident, onClose }) => {
                         </div>
                     )}
                     <div>
-                         <h4 className="font-semibold mb-2 text-sm">Add Comment</h4>
+                         <h4 className="font-medium mb-2 text-sm">Add Comment</h4>
                          <form onSubmit={handleCommentSubmit} className="space-y-2">
                              <div className="bg-slate-100 dark:bg-slate-700 rounded-md border border-light-border dark:border-dark-border">
                                 <div className="p-2 border-b border-light-border dark:border-dark-border">
@@ -137,14 +137,14 @@ const UpdateModal = ({ incident, onClose }) => {
                                 </div>
                                 <div className="flex gap-2 p-2">
                                      <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="flex-grow bg-transparent p-0 focus:outline-none text-sm" />
-                                     <button type="submit" className="bg-light-primary text-white font-semibold px-3 py-1 rounded-md text-sm"><Send size={16} /></button>
+                                     <button type="submit" className="bg-light-primary text-white px-3 py-1 rounded-md text-sm"><Send size={16} /></button>
                                 </div>
                              </div>
                          </form>
                     </div>
                 </div>
                 <div className="p-4 border-t bg-slate-50 dark:bg-slate-800/50 flex justify-end">
-                    <button onClick={onClose} className="bg-slate-200 dark:bg-slate-600 font-semibold py-2 px-4 rounded-md text-sm">Close</button>
+                    <button onClick={onClose} className="bg-slate-200 dark:bg-slate-600 font-medium py-2 px-4 rounded-md text-sm">Close</button>
                 </div>
             </div>
         </div>
@@ -194,7 +194,7 @@ const IncidentCard = ({ incident }) => {
     };
 
     const mainDetailsOrder = ['type', 'mine', 'sectionName', 'date', 'time', 'location', 'reason'];
-    const otherDetailsToExclude = ['id', 'docId', 'createdAt', 'history', 'comments', 'photos', 'victims', 'daysLost', 'isDemo', 'status', ...mainDetailsOrder];
+    const otherDetailsToExclude = ['id', 'docId', 'createdAt', 'history', 'comments', 'photos', 'victims', 'daysLost', 'isDemo', 'status', 'description', ...mainDetailsOrder];
 
     const mainDetails = mainDetailsOrder
         .filter(key => incident[key])
@@ -215,21 +215,19 @@ const IncidentCard = ({ incident }) => {
     return (
         <div className={`bg-light-card dark:bg-dark-card rounded-lg shadow-md border-l-4 ${mineColors[incident.mine] || 'border-slate-500'}`}>
             <div 
-                className="p-4 grid gap-4 items-center grid-cols-[1fr,auto,auto,auto] md:grid-cols-[1fr,8rem,auto,auto,auto] lg:grid-cols-[minmax(0,1fr)_18rem_10rem_6rem_8rem_auto] cursor-pointer" 
+                className="p-4 grid gap-4 items-center grid-cols-[1fr,auto,auto,auto] md:grid-cols-[1fr,8rem,auto,auto,auto] lg:grid-cols-[minmax(0,1fr)_10rem_6rem_8rem_auto] cursor-pointer" 
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <div className="truncate">
-                    <p className="font-semibold text-light-text dark:text-dark-text truncate">{incident.type}</p>
-                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text truncate">{incident.id}</p>
-                </div>
-                <div className="hidden lg:block truncate text-sm text-light-subtle-text dark:text-dark-subtle-text">
-                    {incident.description}
+                    <p className="font-medium text-light-text dark:text-dark-text truncate">{incident.type || 'Unknown Type'}</p>
+                    <p className="text-sm text-light-subtle-text dark:text-dark-subtle-text truncate">{incident.id || 'No ID'}</p>
+                    <p className="hidden lg:block text-xs text-light-subtle-text dark:text-dark-subtle-text truncate mt-1">{incident.description}</p>
                 </div>
                 <div className="hidden md:flex justify-center">
                     {!isExpanded && displayDaysLost > 0 && (
                         <div className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-full">
                             <ShieldAlert size={14} />
-                            <span className="text-xs font-bold">{displayDaysLost} Days</span>
+                            <span className="text-xs font-medium">{displayDaysLost} Days</span>
                         </div>
                     )}
                 </div>
@@ -247,7 +245,7 @@ const IncidentCard = ({ incident }) => {
             {isExpanded && (
                 <div className="p-4 border-t border-light-border dark:border-dark-border space-y-4">
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-2">
-                        <h4 className="font-semibold text-sm mb-1">Incident Details</h4>
+                        <h4 className="font-medium text-sm mb-1">Incident Details</h4>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                            {mainDetails.map(({ label, value }) => (
                                 <p key={label}><strong className="font-medium text-light-subtle-text">{label}:</strong> {value}</p>
@@ -261,7 +259,7 @@ const IncidentCard = ({ incident }) => {
                     
                     {incident.victims && incident.victims.length > 0 && (
                         <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-2">
-                            <h4 className="font-semibold text-sm">Involved Person(s)</h4>
+                            <h4 className="font-medium text-sm">Involved Person(s)</h4>
                             {incident.victims.map((victim, index) => (
                                 <div key={index} className="text-sm">
                                     <p><strong className="font-medium text-light-subtle-text">Name:</strong> {victim.name}</p>
@@ -282,7 +280,7 @@ const IncidentCard = ({ incident }) => {
                     )}
 
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                        <h4 className="font-semibold text-sm mb-2">Comments</h4>
+                        <h4 className="font-medium text-sm mb-2">Comments</h4>
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                              {(incident.comments || []).map((comment, index) => (
                                  <div key={index} className="bg-light-card dark:bg-dark-card p-2 rounded-md text-sm">
@@ -320,21 +318,21 @@ const IncidentCard = ({ incident }) => {
                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowHistory(false)}>
                      <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl max-w-lg w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                          <div className="p-4 border-b flex justify-between items-center">
-                             <h3 className="text-lg font-semibold">Incident History</h3>
+                             <h3 className="text-lg font-medium">Incident History</h3>
                              <button onClick={() => setShowHistory(false)}><X size={24} /></button>
                          </div>
                          <div className="p-4 overflow-y-auto">
                              <ul className="space-y-3">
                                  {incident.history && incident.history.map((item, index) => (
                                      <li key={index} className="text-sm border-l-2 pl-3 border-slate-300 dark:border-slate-600">
-                                         <p className="font-semibold">{item.action}</p>
+                                         <p className="font-medium">{item.action}</p>
                                          <p className="text-xs text-light-subtle-text dark:text-dark-subtle-text">by {item.user} on {format(parseISO(item.timestamp), 'PPP p')}</p>
                                      </li>
                                  ))}
                              </ul>
                          </div>
                          <div className="p-4 border-t bg-slate-50 dark:bg-slate-800/50 flex justify-end">
-                             <button onClick={() => handleViewPdf(true)} className="bg-light-primary text-white font-semibold py-2 px-4 rounded-md text-sm flex items-center gap-2"><Download size={16} /> Export with History</button>
+                             <button onClick={() => handleViewPdf(true)} className="bg-light-primary text-white font-medium py-2 px-4 rounded-md text-sm flex items-center gap-2"><Download size={16} /> Export with History</button>
                          </div>
                      </div>
                  </div>

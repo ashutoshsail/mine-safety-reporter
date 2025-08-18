@@ -144,7 +144,7 @@ function App() {
         <div className="p-4 sm:p-6 pb-12 sm:pb-20">
           {/* --- DESKTOP-ONLY HEADER --- */}
           <div className="hidden lg:block mb-6">
-            <h1 className="inline-block rounded-lg border border-slate-200 bg-slate-100 px-4 py-1 text-2xl font-bold dark:border-slate-700 dark:bg-slate-800">
+            <h1 className="text-lg font-medium text-slate-700 dark:text-slate-200">
               {currentPageTitle}
             </h1>
           </div>

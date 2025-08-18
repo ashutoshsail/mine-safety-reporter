@@ -59,25 +59,28 @@ function App() {
   const setRoute = (newRoute) => {
     if (newRoute !== currentRoute) {
         setRouteHistory(prev => [...prev, newRoute]);
+        window.history.pushState({ route: newRoute }, '', `#${newRoute}`);
     }
     setIsSidebarOpen(false);
-    // Scroll to top on new page navigation
     if (mainContentRef.current) {
         mainContentRef.current.scrollTo(0, 0);
     }
   };
 
-  const handleBack = () => {
-    if (routeHistory.length > 1) {
-      setRouteHistory(prev => prev.slice(0, -1));
+  useEffect(() => {
+    // On initial mount, sync the URL hash with the initial 'home' state.
+    const initialRoute = window.location.hash.substring(1);
+    if (initialRoute) {
+        setRouteHistory(['home', initialRoute]);
+    } else {
+        window.history.replaceState({ route: 'home' }, '', '#home');
     }
-  };
+  }, []);
 
   useEffect(() => {
     document.documentElement.className = theme;
   }, [theme]);
   
-  // Effect for scroll tracking for the BackToTopButton
   useEffect(() => {
     const mainEl = mainContentRef.current;
     if (!mainEl) return;
@@ -92,6 +95,26 @@ function App() {
     mainEl.addEventListener('scroll', handleScroll);
     return () => mainEl.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Listen for browser back button presses
+  useEffect(() => {
+    const handlePopState = (event) => {
+        if (routeHistory.length > 1) {
+            setRouteHistory(prev => prev.slice(0, -1));
+        } else {
+            const confirmExit = window.confirm("Are you sure you want to exit the app?");
+            if (!confirmExit) {
+                // If user cancels, push the state back to prevent exit.
+                window.history.pushState({ route: 'home' }, '', '#home');
+            }
+        }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+        window.removeEventListener('popstate', handlePopState);
+    };
+  }, [routeHistory]);
 
   if (!currentUser) {
     return <LoginPage />;
@@ -143,18 +166,18 @@ function App() {
             onMenuClick={() => setIsSidebarOpen(true)} 
         />
         
-        {/* --- Mobile Header Fade Effect --- */}
         <div className="lg:hidden fixed top-16 left-0 w-full h-6 bg-gradient-to-b from-light-background from-40% dark:from-dark-background to-transparent pointer-events-none z-10" />
 
-        <BackButton onBack={handleBack} disabled={routeHistory.length <= 1} />
+        <BackButton onBack={() => {
+            window.history.back(); // Trigger popstate event
+        }} disabled={routeHistory.length <= 1} />
+        
         <div className={mainContentPadding}>
-          {/* --- DESKTOP-ONLY HEADER --- */}
           <div className="hidden lg:block mb-6">
             <h1 className="text-lg font-medium text-slate-700 dark:text-slate-200">
               {currentPageTitle}
             </h1>
           </div>
-          {/* --- END DESKTOP-ONLY HEADER --- */}
           
           {renderPage()}
         </div>
@@ -164,7 +187,6 @@ function App() {
         />
       </main>
 
-      {/* --- MOBILE NAVIGATION --- */}
       {navPreference === 'fab' ? (
         <FloatingNav currentRoute={currentRoute} setRoute={setRoute} />
       ) : (

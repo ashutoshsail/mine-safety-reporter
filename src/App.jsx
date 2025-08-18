@@ -122,7 +122,7 @@ function App() {
   };
 
   return (
-    <div className="flex bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text min-h-screen">
+    <div className="flex h-screen bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text">
       <Sidebar 
         currentRoute={currentRoute} 
         setRoute={setRoute} 
@@ -136,6 +136,10 @@ function App() {
             title={currentPageTitle} 
             onMenuClick={() => setIsSidebarOpen(true)} 
         />
+        
+        {/* --- Mobile Header Fade Effect --- */}
+        <div className="lg:hidden fixed top-16 left-0 w-full h-6 bg-gradient-to-b from-light-background from-40% dark:from-dark-background to-transparent pointer-events-none z-10" />
+
         <BackButton onBack={handleBack} disabled={routeHistory.length <= 1} />
         <div className="p-4 sm:p-6">
           {/* --- DESKTOP-ONLY HEADER --- */}

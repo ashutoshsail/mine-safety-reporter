@@ -141,7 +141,7 @@ function App() {
         <div className="lg:hidden fixed top-16 left-0 w-full h-6 bg-gradient-to-b from-light-background from-40% dark:from-dark-background to-transparent pointer-events-none z-10" />
 
         <BackButton onBack={handleBack} disabled={routeHistory.length <= 1} />
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 pb-12 sm:pb-20">
           {/* --- DESKTOP-ONLY HEADER --- */}
           <div className="hidden lg:block mb-6">
             <h1 className="inline-block rounded-lg border border-slate-200 bg-slate-100 px-4 py-1 text-2xl font-bold dark:border-slate-700 dark:bg-slate-800">

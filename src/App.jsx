@@ -56,6 +56,12 @@ function App() {
   const mainContentRef = useRef(null);
   const currentRoute = routeHistory[routeHistory.length - 1];
 
+  // Create a ref to hold the latest routeHistory to avoid stale state in event listeners.
+  const routeHistoryRef = useRef(routeHistory);
+  useEffect(() => {
+    routeHistoryRef.current = routeHistory;
+  });
+
   const setRoute = (newRoute) => {
     if (newRoute !== currentRoute) {
         setRouteHistory(prev => [...prev, newRoute]);
@@ -70,7 +76,7 @@ function App() {
   useEffect(() => {
     // On initial mount, sync the URL hash with the initial 'home' state.
     const initialRoute = window.location.hash.substring(1);
-    if (initialRoute) {
+    if (initialRoute && initialRoute !== 'home') {
         setRouteHistory(['home', initialRoute]);
     } else {
         window.history.replaceState({ route: 'home' }, '', '#home');
@@ -84,7 +90,6 @@ function App() {
   useEffect(() => {
     const mainEl = mainContentRef.current;
     if (!mainEl) return;
-
     const handleScroll = () => {
         if (mainEl.scrollTop > 300) {
             setShowBackToTop(true);
@@ -99,12 +104,13 @@ function App() {
   // Listen for browser back button presses
   useEffect(() => {
     const handlePopState = (event) => {
-        if (routeHistory.length > 1) {
+        // Use the ref to get the *current* history length, preventing stale state issues.
+        if (routeHistoryRef.current.length > 1) {
             setRouteHistory(prev => prev.slice(0, -1));
         } else {
             const confirmExit = window.confirm("Are you sure you want to exit the app?");
             if (!confirmExit) {
-                // If user cancels, push the state back to prevent exit.
+                // If the user cancels, push the state back to prevent exit.
                 window.history.pushState({ route: 'home' }, '', '#home');
             }
         }
@@ -114,7 +120,7 @@ function App() {
     return () => {
         window.removeEventListener('popstate', handlePopState);
     };
-  }, [routeHistory]);
+  }, []); // This listener is now stable and does not depend on routeHistory state.
 
   if (!currentUser) {
     return <LoginPage />;

@@ -50,22 +50,21 @@ function App() {
   const { currentUser } = useContext(AuthContext);
   const { companyProfile } = useContext(ConfigContext);
   
-  const [routeHistory, setRouteHistory] = useState(['home']);
+  const [currentRoute, setCurrentRoute] = useState(window.location.hash.substring(1) || 'home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const mainContentRef = useRef(null);
-  const currentRoute = routeHistory[routeHistory.length - 1];
 
-  // Create a ref to hold the latest routeHistory to avoid stale state in event listeners.
-  const routeHistoryRef = useRef(routeHistory);
+  // Use a ref to track the current route for the `beforeunload` event listener
+  const currentRouteRef = useRef(currentRoute);
   useEffect(() => {
-    routeHistoryRef.current = routeHistory;
+    currentRouteRef.current = currentRoute;
   });
 
   const setRoute = (newRoute) => {
     if (newRoute !== currentRoute) {
-        setRouteHistory(prev => [...prev, newRoute]);
         window.history.pushState({ route: newRoute }, '', `#${newRoute}`);
+        setCurrentRoute(newRoute);
     }
     setIsSidebarOpen(false);
     if (mainContentRef.current) {
@@ -74,13 +73,39 @@ function App() {
   };
 
   useEffect(() => {
-    // On initial mount, sync the URL hash with the initial 'home' state.
-    const initialRoute = window.location.hash.substring(1);
-    if (initialRoute && initialRoute !== 'home') {
-        setRouteHistory(['home', initialRoute]);
-    } else {
+    if (!window.location.hash) {
         window.history.replaceState({ route: 'home' }, '', '#home');
     }
+  }, []);
+
+  // This listener now ONLY handles in-app navigation.
+  useEffect(() => {
+    const handlePopState = (event) => {
+        if (event.state && event.state.route) {
+            setCurrentRoute(event.state.route);
+        }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+        window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  // This NEW, more reliable listener handles the exit confirmation.
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+        // Check the ref for the CURRENT route.
+        // If on the home page, and trying to leave, show the confirmation prompt.
+        if (currentRouteRef.current === 'home') {
+            event.preventDefault();
+            event.returnValue = ''; // Required for cross-browser compatibility
+            return ''; // For modern browsers
+        }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   useEffect(() => {
@@ -100,27 +125,6 @@ function App() {
     mainEl.addEventListener('scroll', handleScroll);
     return () => mainEl.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Listen for browser back button presses
-  useEffect(() => {
-    const handlePopState = (event) => {
-        // Use the ref to get the *current* history length, preventing stale state issues.
-        if (routeHistoryRef.current.length > 1) {
-            setRouteHistory(prev => prev.slice(0, -1));
-        } else {
-            const confirmExit = window.confirm("Are you sure you want to exit the app?");
-            if (!confirmExit) {
-                // If the user cancels, push the state back to prevent exit.
-                window.history.pushState({ route: 'home' }, '', '#home');
-            }
-        }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-        window.removeEventListener('popstate', handlePopState);
-    };
-  }, []); // This listener is now stable and does not depend on routeHistory state.
 
   if (!currentUser) {
     return <LoginPage />;
@@ -174,9 +178,7 @@ function App() {
         
         <div className="lg:hidden fixed top-16 left-0 w-full h-6 bg-gradient-to-b from-light-background from-40% dark:from-dark-background to-transparent pointer-events-none z-10" />
 
-        <BackButton onBack={() => {
-            window.history.back(); // Trigger popstate event
-        }} disabled={routeHistory.length <= 1} />
+        <BackButton onBack={() => window.history.back()} disabled={currentRoute === 'home'} />
         
         <div className={mainContentPadding}>
           <div className="hidden lg:block mb-6">

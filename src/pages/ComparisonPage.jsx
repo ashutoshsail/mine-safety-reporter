@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo, useEffect } from 'react';
+import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -43,7 +43,7 @@ const VarianceBar = ({ value }) => {
 
 const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSelected }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const ref = React.useRef(null);
+    const ref = useRef(null);
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (ref.current && !ref.current.contains(event.target)) setIsOpen(false);

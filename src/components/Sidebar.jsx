@@ -92,7 +92,7 @@ const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen }) => {
           </div>
 
           {/* Panel 2: Logo and App Name (Fixed position with high bottom padding) */}
-          <div className="flex-shrink-0" style={{ paddingBottom: '30vh' }}>
+          <div className="flex-shrink-0" style={{ paddingBottom: '15vh' }}>
              <div className="flex flex-col items-center text-center p-4 border-t border-light-border dark:border-dark-border">
                 <LogoIcon className="w-10 h-10 text-slate-400 dark:text-slate-500" />
                 <p className="text-sm font-bold mt-2">{companyProfile?.name || "Mines Safety App"}</p>

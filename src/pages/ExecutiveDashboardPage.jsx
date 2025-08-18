@@ -2,10 +2,11 @@ import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ChevronLeft, ChevronRight, Smile, Info, TrendingUp, TrendingDown, ChevronDown, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Smile, Info, TrendingUp, TrendingDown } from 'lucide-react';
 import { subMonths, startOfMonth, format, eachMonthOfInterval, subDays } from 'date-fns';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
+import FloatingFilterBar from '../components/FloatingFilterBar'; // MODIFIED: Import the new component
 
 // --- Configuration and Setup ---
 const fullConfig = resolveConfig(tailwindConfig);
@@ -35,59 +36,7 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSelected, isSingleSelect = false }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const ref = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (ref.current && !ref.current.contains(event.target)) setIsOpen(false);
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [ref]);
-
-    const getDisplayText = () => {
-        if (isSingleSelect) return selected;
-        if (isAllSelected) return `All ${label}`;
-        if (selected.length === 1) return selected[0];
-        return `${selected.length} ${label}`;
-    };
-
-    return (
-        <div className="relative" ref={ref}>
-            <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 text-sm font-medium bg-light-card dark:bg-dark-card px-3 py-1.5 rounded-full shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700">
-                <span>{getDisplayText()}</span>
-                <ChevronDown size={16} className="text-light-subtle-text" />
-            </button>
-            {isOpen && (
-                <div className="absolute top-full mt-2 left-0 bg-light-card dark:bg-dark-card border dark:border-dark-border rounded-lg shadow-xl w-56 z-20">
-                    {!isSingleSelect && (
-                        <div className="flex justify-between items-center p-2 border-b dark:border-dark-border">
-                             <span className="text-sm font-semibold px-1">{label}</span>
-                             <button onClick={onSelectAll} className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">
-                                {isAllSelected ? 'Deselect All' : 'Select All'}
-                            </button>
-                        </div>
-                    )}
-                    <ul className="max-h-60 overflow-y-auto text-sm p-1">
-                        {options.map(option => (
-                            <li key={option} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={() => onSelect(option)}>
-                                {!isSingleSelect && (
-                                    <div className={`w-4 h-4 border-2 rounded-sm flex items-center justify-center ${selected.includes(option) ? 'bg-light-primary border-light-primary' : 'border-slate-300'}`}>
-                                        {selected.includes(option) && <Check size={12} className="text-white" />}
-                                    </div>
-                                )}
-                                <span>{option}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
-};
-
+// --- Main Dashboard Component ---
 const ExecutiveDashboardPage = () => {
     const { incidents, hoursWorked, currentDate } = useContext(AppContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
@@ -234,25 +183,39 @@ const ExecutiveDashboardPage = () => {
         return Object.entries(sectionCounts).map(([name, Incidents]) => ({ name, Incidents })).sort((a, b) => b.Incidents - a.Incidents);
     }, [filteredIncidents]);
 
-    const handleMineSelect = (mine) => setSelectedMines(prev => prev.includes(mine) ? prev.filter(m => m !== mine) : [...prev, mine]);
-    const handleSelectAllMines = () => setSelectedMines(areAllMinesSelected ? [] : MINES);
-    const handleTypeSelect = (type) => setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
-    const handleSelectAllTypes = () => setSelectedTypes(areAllTypesSelected ? [] : INCIDENT_TYPES);
-    const handlePeriodSelect = (p) => setPeriod(p);
+    const filters = [
+        {
+            label: "Period",
+            options: ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'],
+            selected: period,
+            onSelect: (p) => setPeriod(p),
+            isSingleSelect: true,
+        },
+        {
+            label: "Mines",
+            options: MINES || [],
+            selected: selectedMines,
+            onSelect: (mine) => setSelectedMines(prev => prev.includes(mine) ? prev.filter(m => m !== mine) : [...prev, mine]),
+            onSelectAll: () => setSelectedMines(areAllMinesSelected ? [] : MINES),
+            isAllSelected: areAllMinesSelected,
+        },
+        {
+            label: "Types",
+            options: INCIDENT_TYPES || [],
+            selected: selectedTypes,
+            onSelect: (type) => setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]),
+            onSelectAll: () => setSelectedTypes(areAllTypesSelected ? [] : INCIDENT_TYPES),
+            isAllSelected: areAllTypesSelected,
+        },
+    ];
     
     const nextMine = () => setPieChartMineIndex(prev => (prev + 1) % selectedMines.length);
     const prevMine = () => setPieChartMineIndex(prev => (prev - 1 + selectedMines.length) % selectedMines.length);
     
-    const periodOptions = ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'];
-
     return (
-        <div className="space-y-4">
-            <div className="sticky top-4 z-30">
-                <div className="flex items-center justify-center gap-2 md:gap-4 p-2 bg-light-card dark:bg-dark-card rounded-full shadow-lg max-w-lg mx-auto">
-                    <FilterPill label="Period" options={periodOptions} selected={period} onSelect={handlePeriodSelect} isSingleSelect={true} />
-                    <FilterPill label="Mines" options={MINES} selected={selectedMines} onSelect={handleMineSelect} onSelectAll={handleSelectAllMines} isAllSelected={areAllMinesSelected} />
-                    <FilterPill label="Types" options={INCIDENT_TYPES} selected={selectedTypes} onSelect={handleTypeSelect} onSelectAll={handleSelectAllTypes} isAllSelected={areAllTypesSelected} />
-                </div>
+        <div className="flex flex-col gap-4">
+            <div className="sticky top-4 lg:top-5 z-20 flex-shrink-0">
+                <FloatingFilterBar filters={filters} />
             </div>
             
             <div className="flex gap-4 overflow-x-auto pb-3 -mb-3">

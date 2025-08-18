@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ArrowUp } from 'lucide-react';
 
 const BackToTopButton = ({ isVisible, scrollContainerRef }) => {

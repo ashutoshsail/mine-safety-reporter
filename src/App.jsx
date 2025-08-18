@@ -17,11 +17,11 @@ import { ArrowLeft } from 'lucide-react';
 import LogoIcon from './components/LogoIcon';
 
 const Header = ({ title, onMenuClick }) => (
-  <header className="p-4 bg-light-card dark:bg-dark-card shadow-sm lg:hidden sticky top-0 z-20 flex items-center gap-4">
+  <header className="p-4 bg-light-card dark:bg-dark-card shadow-sm lg:hidden fixed top-0 left-0 w-full z-20 flex items-center gap-4">
     <button onClick={onMenuClick} className="flex-shrink-0 text-light-primary dark:text-dark-primary">
         <LogoIcon className="h-8 w-8" />
     </button>
-    <h1 className="text-xl font-semibold truncate">{title}</h1>
+    <h1 className="text-base font-semibold truncate">{title}</h1>
   </header>
 );
 
@@ -131,13 +131,21 @@ function App() {
         setIsOpen={setIsSidebarOpen}
       />
       
-      <main ref={mainContentRef} className="flex-1 lg:ml-64 relative overflow-y-auto">
+      <main ref={mainContentRef} className="flex-1 lg:ml-64 relative overflow-y-auto pt-16 lg:pt-0">
         <Header 
             title={currentPageTitle} 
             onMenuClick={() => setIsSidebarOpen(true)} 
         />
         <BackButton onBack={handleBack} disabled={routeHistory.length <= 1} />
         <div className="p-4 sm:p-6">
+          {/* --- DESKTOP-ONLY HEADER --- */}
+          <div className="hidden lg:block mb-6">
+            <h1 className="inline-block rounded-lg border border-slate-200 bg-slate-100 px-4 py-1 text-2xl font-bold dark:border-slate-700 dark:bg-slate-800">
+              {currentPageTitle}
+            </h1>
+          </div>
+          {/* --- END DESKTOP-ONLY HEADER --- */}
+          
           {renderPage()}
         </div>
         <BackToTopButton isVisible={showBackToTop} scrollContainerRef={mainContentRef} />

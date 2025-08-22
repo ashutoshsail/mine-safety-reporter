@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mine Safety Reporter: PWA Proposal</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+        #presentation-container {
+            width: 100%;
+            max-width: 160vh; /* Ensures 16:9 aspect ratio on vertical screens */
+            height: auto;
+            aspect-ratio: 16 / 9;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            padding: 4rem;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            transform: translateX(100%);
+        }
+        .slide.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        h1 {
+            font-size: 3rem;
+            color: #0d47a1;
+            margin-bottom: 0.5rem;
+        }
+        h2 {
+            font-size: 2.25rem;
+            color: #0d47a1;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        h3 {
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+            color: #555;
+            transition: color 0.2s ease;
+        }
+        h3:hover {
+            color: #0d47a1;
+        }
+        h3 .arrow {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        h3.expanded .arrow {
+            transform: rotate(90deg);
+        }
+        .content {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            padding-left: 3rem;
+            padding-right: 2rem;
+        }
+        .content.show {
+            max-height: 500px; /* Adjust as needed for content length */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        ul {
+            margin: 0;
+            padding-left: 2rem;
+        }
+        ul li {
+            margin-bottom: 0.5rem;
+        }
+        .navigation {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .navigation button {
+            background-color: #0d47a1;
+            color: #fff;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        .navigation button:hover {
+            background-color: #1565c0;
+        }
+        .navigation button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+
+    <div class="slide active">
+        <h1>Mine Safety Reporter</h1>
+        <p style="font-size: 1.5rem; color: #555;">A Proposal for a New PWA</p>
+        <h3 style="margin-top: 5rem;">Seeking Partnership for Deployment</h3>
+    </div>
+
+    <div class="slide">
+        <h2>The Problem: A Fragmented System</h2>
+        <h3 class="collapsible">
+            <span class="arrow">▶️</span>
+            Reporting is a manual, decentralized process.
+        </h3>
+        <div class="content">
+            <ul>
+                <li>Lack of Standardization: Formats vary widely (PDF, Excel, handwritten).</li>
+                <li>Data Loss Risk: Records on local PCs are vulnerable to crashes.</li>
+                <li>Ineffective Follow-up: Central safety lacks visibility on incident status.</li>
+                <li>Poor Reporting Culture: On-site infrastructure discourages immediate reporting.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="slide">
+        <h2>The Solution: A Modern, Secure PWA</h2>
+        <h3 class="collapsible">
+            <span class="arrow">▶️</span>
+            The application provides a centralized, digital platform.
+        </h3>
+        <div class="content">
+            <ul>
+                <li>Standardized Data: A single format for all reports on a secure server.</li>
+                <li>Real-time Visibility: Live dashboards provide instant updates across all mines.</li>
+                <li>Mobile-First Reporting: Enables on-site personnel to report near-misses instantly.</li>
+                <li>Proactive Insights: Structured data allows for trend analysis.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="slide">
+        <h2>Core Functionality Overview</h2>
+        <h3 class="collapsible">
+            <span class="arrow">▶️</span>
+            Key features include:
+        </h3>
+        <div class="content">
+            <ul>
+                <li>Incident Reporting: A multi-step form to capture all required details.</li>
+                <li>Incident Log: A filterable log of reports with detailed views and PDF export.</li>
+                <li>Analytics Dashboards: Visual tools for management to analyze performance and trends.</li>
+                <li>Admin Panel: An interface to manage key application data (mines, sections, users).</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="slide">
+        <h2>Technical Architecture</h2>
+        <h3 class="collapsible">
+            <span class="arrow">▶️</span>
+            The app is built on a modern, robust stack.
+        </h3>
+        <div class="content">
+            <ul>
+                <li>Frontend: React PWA with Vite.</li>
+                <li>Styling: Tailwind CSS for a professional UI.</li>
+                <li>Backend: Firebase for secure and scalable cloud services.</li>
+                <li>Data Layer: React Context API for global state management.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="slide">
+        <h2>Security & Data Integrity</h2>
+        <h3 class="collapsible">
+            <span class="arrow">▶️</span>
+            The app ensures security and accountability through:
+        </h3>
+        <div class="content">
+            <ul>
+                <li>Custom Login: Uses User IDs with Firebase Auth.</li>
+                <li>Immutable Audit Log: Every change is logged with a timestamp.</li>
+                <li>Role-Based Access: The Admin Panel is restricted to authorized users.</li>
+                <li>Centralized Storage: Protects against local data loss.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="slide">
+        <h2>Next Steps: Our Ask</h2>
+        <h3 class="collapsible">
+            <span class="arrow">▶️</span>
+            We need your team's support to:
+        </h3>
+        <div class="content">
+            <ul>
+                <li>Configure & Manage Firebase: Set up a production-ready Firestore instance and security rules.</li>
+                <li>Deployment: Host the application on our internal organization server.</li>
+                <li>User Management: Collaborate on a plan for managing users and roles within our IT infrastructure.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="slide">
+        <h1>Thank You</h1>
+        <h3 style="text-align: center; margin-top: 5rem; cursor: default;">Discussion & Next Steps</h3>
+    </div>
+
+    <div class="navigation">
+        <button id="prevBtn" disabled>Previous</button>
+        <button id="nextBtn">Next</button>
+    </div>
+
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let currentSlide = 0;
+
+    function showSlide(index) {
+        slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === index);
+        });
+        updateNavigationButtons();
+    }
+
+    function updateNavigationButtons() {
+        prevBtn.disabled = currentSlide === 0;
+        nextBtn.disabled = currentSlide === slides.length - 1;
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentSlide > 0) {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+    });
+
+    // Toggle content visibility on click
+    document.querySelectorAll('.collapsible').forEach(heading => {
+        heading.addEventListener('click', () => {
+            const content = heading.nextElementSibling;
+            heading.classList.toggle('expanded');
+            content.classList.toggle('show');
+        });
+    });
+
+    showSlide(currentSlide);
+</script>
+
+</body>
+</html>

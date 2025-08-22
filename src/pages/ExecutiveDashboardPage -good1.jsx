@@ -1,19 +1,28 @@
 import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
 import { ConfigContext } from '../context/ConfigContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ReferenceLine } from 'recharts';
-import { ChevronLeft, ChevronRight, X as XIcon, Smile, Info, TrendingUp, TrendingDown, ChevronDown, Check } from 'lucide-react';
-import { subMonths, startOfMonth, format, eachMonthOfInterval, subDays, subYears } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ChevronLeft, ChevronRight, Smile, Info, TrendingUp, TrendingDown } from 'lucide-react';
+import { subMonths, startOfMonth, format, eachMonthOfInterval, subDays } from 'date-fns';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import tailwindConfig from '../../tailwind.config.js';
-import DashboardCard from '../components/ui/DashboardCard';
-import FilterPill from '../components/ui/FloatingFilterBar';
-import useWindowSize from '../hooks/useWindowSize';
-import MineSafetyRatingCard from '../components/MineSafetyRatingCard';
+import FloatingFilterBar from '../components/FloatingFilterBar'; // MODIFIED: Import the new component
 
 // --- Configuration and Setup ---
 const fullConfig = resolveConfig(tailwindConfig);
 const chartColors = fullConfig.theme.chart; 
+
+// --- Reusable UI Components ---
+const KpiCard = ({ title, value, change, changeType }) => (
+    <div className="bg-light-background dark:bg-dark-background p-4 rounded-lg shadow-md flex-1 text-center flex-shrink-0 w-2/3 sm:w-1/3 md:w-auto">
+        <h4 className="text-sm font-medium text-light-subtle-text dark:text-dark-subtle-text">{title}</h4>
+        <p className="text-3xl font-bold my-1">{value}</p>
+        <div className={`flex items-center justify-center text-sm font-semibold ${changeType === 'good' ? 'text-green-500' : 'text-red-500'}`}>
+            {changeType === 'good' ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+            <span className="ml-1">{change}% vs previous period</span>
+        </div>
+    </div>
+);
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -32,9 +41,6 @@ const ExecutiveDashboardPage = () => {
     const { incidents, hoursWorked, currentDate } = useContext(AppContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     
-    const { width } = useWindowSize();
-    const isSmallScreen = width < 768;
-
     const [period, setPeriod] = useState('Last 3 Months');
     const [selectedMines, setSelectedMines] = useState([]);
     const [selectedTypes, setSelectedTypes] = useState([]);
@@ -55,7 +61,6 @@ const ExecutiveDashboardPage = () => {
     const areAllTypesSelected = INCIDENT_TYPES && selectedTypes.length === INCIDENT_TYPES.length;
 
     const incidentTypeColorMap = useMemo(() => {
-		
         const colorKeys = Object.keys(chartColors);
         return (INCIDENT_TYPES || []).reduce((acc, type, index) => {
             acc[type] = chartColors[colorKeys[index % colorKeys.length]];
@@ -178,34 +183,46 @@ const ExecutiveDashboardPage = () => {
         return Object.entries(sectionCounts).map(([name, Incidents]) => ({ name, Incidents })).sort((a, b) => b.Incidents - a.Incidents);
     }, [filteredIncidents]);
 
-    const handleMineSelect = (mine) => setSelectedMines(prev => prev.includes(mine) ? prev.filter(m => m !== mine) : [...prev, mine]);
-    const handleSelectAllMines = () => setSelectedMines(areAllMinesSelected ? [] : MINES);
-    const handleTypeSelect = (type) => setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
-    const handleSelectAllTypes = () => setSelectedTypes(areAllTypesSelected ? [] : INCIDENT_TYPES);
-    const handlePeriodSelect = (p) => setPeriod(p);
+    const filters = [
+        {
+            label: "Period",
+            options: ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'],
+            selected: period,
+            onSelect: (p) => setPeriod(p),
+            isSingleSelect: true,
+        },
+        {
+            label: "Mines",
+            options: MINES || [],
+            selected: selectedMines,
+            onSelect: (mine) => setSelectedMines(prev => prev.includes(mine) ? prev.filter(m => m !== mine) : [...prev, mine]),
+            onSelectAll: () => setSelectedMines(areAllMinesSelected ? [] : MINES),
+            isAllSelected: areAllMinesSelected,
+        },
+        {
+            label: "Types",
+            options: INCIDENT_TYPES || [],
+            selected: selectedTypes,
+            onSelect: (type) => setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]),
+            onSelectAll: () => setSelectedTypes(areAllTypesSelected ? [] : INCIDENT_TYPES),
+            isAllSelected: areAllTypesSelected,
+        },
+    ];
     
     const nextMine = () => setPieChartMineIndex(prev => (prev + 1) % selectedMines.length);
     const prevMine = () => setPieChartMineIndex(prev => (prev - 1 + selectedMines.length) % selectedMines.length);
     
-    const periodOptions = ['Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'];
-    
     return (
-        <div className="space-y-4">
-            <div className="sticky top-4 z-30">
-                <div className="flex items-center justify-center gap-2 md:gap-4 p-2 bg-light-card dark:bg-dark-card rounded-full shadow-lg max-w-lg mx-auto">
-                    <FilterPill label="Period" options={periodOptions} selected={period} onSelect={handlePeriodSelect} isSingleSelect={true} />
-                    <FilterPill label="Mines" options={MINES} selected={selectedMines} onSelect={handleMineSelect} onSelectAll={handleSelectAllMines} isAllSelected={areAllMinesSelected} />
-                    <FilterPill label="Types" options={INCIDENT_TYPES} selected={selectedTypes} onSelect={handleTypeSelect} onSelectAll={handleSelectAllTypes} isAllSelected={areAllTypesSelected} />
-                </div>
+        <div className="flex flex-col gap-4">
+            <div className="sticky top-4 lg:top-5 z-20 flex-shrink-0">
+                <FloatingFilterBar filters={filters} />
             </div>
             
             <div className="flex gap-4 overflow-x-auto pb-3 -mb-3">
-                <DashboardCard title="Total Incidents" value={kpiData.totalIncidents.value} change={kpiData.totalIncidents.change} changeType={kpiData.totalIncidents.change > 0 ? 'bad' : 'good'} />
-                <DashboardCard title="LTIFR" value={kpiData.ltifr.value} change={kpiData.ltifr.change} changeType={kpiData.ltifr.change > 0 ? 'bad' : 'good'} />
-                <DashboardCard title="Near Miss Ratio" value={kpiData.nearMissRatio.value} change={0} changeType={'good'} />
+                <KpiCard title="Total Incidents" value={kpiData.totalIncidents.value} change={kpiData.totalIncidents.change} changeType={kpiData.totalIncidents.change > 0 ? 'bad' : 'good'} />
+                <KpiCard title="LTIFR" value={kpiData.ltifr.value} change={kpiData.ltifr.change} changeType={kpiData.ltifr.change > 0 ? 'bad' : 'good'} />
+                <KpiCard title="Near Miss Ratio" value={kpiData.nearMissRatio.value} change={0} changeType={'good'} />
             </div>
-
-            <MineSafetyRatingCard />
 
             {selectedMines.length === 0 || selectedTypes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center text-light-subtle-text dark:text-dark-subtle-text bg-light-card dark:bg-dark-card rounded-lg">
@@ -264,7 +281,13 @@ const ExecutiveDashboardPage = () => {
                     <div className="bg-light-card dark:bg-dark-card p-4 rounded-lg shadow-md">
                          <h3 className="font-semibold text-base mb-2">Incident Hotspots</h3>
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={hotspotData} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis type="number" fontSize={10} /><YAxis type="category" dataKey="name" width={80} fontSize={10} tickLine={false} axisLine={false} /><Tooltip content={<CustomTooltip />} /><Bar dataKey="Incidents" fill={chartColors.orange} barSize={15} /></BarChart>
+                            <BarChart data={hotspotData} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                                <XAxis type="number" fontSize={10} />
+                                <YAxis type="category" dataKey="name" width={80} fontSize={10} tickLine={false} axisLine={false} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Bar dataKey="Incidents" fill={chartColors.orange} barSize={15} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>

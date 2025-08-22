@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mine Safety Reporting and Analysis App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #f97316; /* Orange */
+            --text-color: #262626;   /* Black */
+            --bg-color: #ffffff;      /* White */
+            --subtle-bg-color: #f5f5f5; /* Light Gray */
+            --border-color: #e5e5e5;    /* Gray */
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--subtle-bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text-color);
+        }
+        #presentation-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .slide-frame {
+            width: 100%;
+            height: 100%;
+            max-width: 160vh;
+            max-height: 90vw;
+            aspect-ratio: 16 / 9;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            position: relative;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .slide {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem;
+            box-sizing: border-box;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.6s ease-in-out, visibility 0.6s ease-in-out;
+        }
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        h1 {
+            font-size: 3.5rem;
+            color: var(--primary-color);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        h2 {
+            font-size: 2.5rem;
+            color: var(--text-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+            font-weight: 400;
+        }
+        h3 {
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+            color: var(--text-color);
+            font-weight: 400;
+        }
+        h3:hover {
+            color: var(--primary-color);
+        }
+        h3 .arrow {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+        h3.expanded .arrow {
+            transform: rotate(90deg);
+            color: var(--primary-color);
+        }
+        .content {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            padding-left: 3rem;
+            padding-right: 2rem;
+            box-sizing: border-box;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+        .content.show {
+            max-height: 500px; /* Ample space to prevent overflow issues */
+            opacity: 1;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        ul {
+            margin: 0;
+            padding-left: 1.5rem;
+            list-style-type: '— ';
+        }
+        ul li {
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+        .navigation {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .navigation button {
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        .navigation button:hover {
+            background-color: #e56a14;
+        }
+        .navigation button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    <div class="slide-frame">
+        <div class="slide active">
+            <h1>Mine Safety App</h1>
+            <h2 style="margin-top: 1rem; font-weight: 400; color: #525252;">Introducing the Safety Reporting and Analysis App for Mines</h2>
+            <p style="font-size: 1.2rem; color: #737373;">A brief on the app's purpose and the help sought from the IT team.</p>
+        </div>
+
+        <div class="slide">
+            <h2>The Problem: A Fragmented System</h2>
+            <h3 class="collapsible">
+                <span class="arrow">▶️</span>
+                Reporting is a manual, decentralized process.
+            </h3>
+            <div class="content">
+                <ul>
+                    <li><strong>Lack of Standardization:</strong> Report formats vary widely, forcing manual data entry and formatting.</li>
+                    <li><strong>Data Loss Risk:</strong> Records on local PCs are vulnerable to hardware crashes.</li>
+                    <li><strong>Ineffective Follow-up:</strong> Central safety lacks visibility on the status of most incidents.</li>
+                    <li><strong>Poor Reporting Culture:</strong> On-site infrastructure discourages immediate reporting.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>The Solution: A Modern, Secure App</h2>
+            <h3 class="collapsible">
+                <span class="arrow">▶️</span>
+                The application provides a centralized, digital platform.
+            </h3>
+            <div class="content">
+                <ul>
+                    <li><strong>Standardized Data:</strong> A single format for all reports on a secure server.</li>
+                    <li><strong>Real-time Visibility:</strong> Live dashboards provide instant updates across all mines.</li>
+                    <li><strong>Mobile-First Reporting:</strong> On-site personnel can report near-misses instantly.</li>
+                    <li><strong>Proactive Insights:</strong> Structured data allows for trend analysis.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="slide">
+            <h2>Core Functionality Overview</h2>
+            <h3 class="collapsible">
+                <span class="arrow">▶️</span>
+                Key features include:
+            </h3>
+            <div class="content">
+                <ul>
+                    <li><strong>Incident Reporting:</strong> A multi-step form to capture all required details.</li>
+                    <li><strong>Incident Log:</strong> A filterable log of reports with detailed views and PDF export.</li>
+                    <li><strong>Analytics Dashboards:</strong> Visual tools for management to analyze performance and trends.</li>
+                    <li><strong>Admin Panel:</strong> An interface to manage key application data (mines, sections, users).</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="slide">
+            <h2>Technical Architecture</h2>
+            <h3 class="collapsible">
+                <span class="arrow">▶️</span>
+                The app is built on a modern, robust stack.
+            </h3>
+            <div class="content">
+                <ul>
+                    <li><strong>Frontend:</strong> React PWA with Vite.</li>
+                    <li><strong>Styling:</strong> Tailwind CSS for a professional UI.</li>
+                    <li><strong>Backend:</strong> Firebase for secure and scalable cloud services.</li>
+                    <li><strong>Data Layer:</strong> React Context API for global state management.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="slide">
+            <h2>Security & Data Integrity</h2>
+            <h3 class="collapsible">
+                <span class="arrow">▶️</span>
+                The app ensures security and accountability through:
+            </h3>
+            <div class="content">
+                <ul>
+                    <li><strong>Custom Login:</strong> Uses User IDs with Firebase Auth.</li>
+                    <li><strong>Immutable Audit Log:</strong> Every change is logged with a timestamp.</li>
+                    <li><strong>Role-Based Access:</strong> The Admin Panel is restricted to authorized users.</li>
+                    <li><strong>Centralized Storage:</strong> Protects against local data loss.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Next Steps: Our Ask</h2>
+            <h3 class="collapsible">
+                <span class="arrow">▶️</span>
+                We need your team's support to:
+            </h3>
+            <div class="content">
+                <ul>
+                    <li><strong>Configure Firebase:</strong> Set up a production-ready Firestore instance and security rules.</li>
+                    <li><strong>Deployment:</strong> Host the application on our internal organization server.</li>
+                    <li><strong>User Management:</strong> Collaborate on a plan for managing users and roles within our IT infrastructure.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="slide">
+            <h1 style="text-align: center; color: var(--text-color);">Thank You</h1>
+            <p style="font-size: 1.5rem; text-align: center; color: #737373;">Discussion & Next Steps</p>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button id="prevBtn" disabled>Previous</button>
+        <button id="nextBtn">Next</button>
+    </div>
+
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let currentSlide = 0;
+
+    function showSlide(index) {
+        slides.forEach((slide, i) => {
+            slide.classList.remove('active');
+        });
+        slides[index].classList.add('active');
+        updateNavigationButtons();
+    }
+
+    function updateNavigationButtons() {
+        prevBtn.disabled = currentSlide === 0;
+        nextBtn.disabled = currentSlide === slides.length - 1;
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentSlide > 0) {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+    });
+
+    document.querySelectorAll('.collapsible').forEach(heading => {
+        heading.addEventListener('click', () => {
+            const content = heading.nextElementSibling;
+            const isExpanded = heading.classList.contains('expanded');
+            
+            // Close all other open sections
+            document.querySelectorAll('.collapsible.expanded').forEach(otherHeading => {
+                otherHeading.classList.remove('expanded');
+                otherHeading.nextElementSibling.classList.remove('show');
+            });
+            
+            // Toggle current section
+            if (!isExpanded) {
+                heading.classList.add('expanded');
+                content.classList.add('show');
+            }
+        });
+    });
+
+    // Initial show
+    showSlide(currentSlide);
+</script>
+
+</body>
+</html>

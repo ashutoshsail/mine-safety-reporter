@@ -1,10 +1,10 @@
 import React, { useContext } from 'react';
 import { ArrowUp } from 'lucide-react';
-import { AppContext } from '../context/AppContext';
+import { UIContext } from '../context/UIContext';
 
 
 const BackToTopButton = ({ isVisible, scrollContainerRef }) => {
-  const { navPreference } = useContext(AppContext);
+  const { navPreference } = useContext(UIContext);
   const scrollToTop = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({

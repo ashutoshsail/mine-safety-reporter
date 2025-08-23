@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
+import { UIContext } from '../context/UIContext';
 import { Sun, Moon, LogOut, Smartphone, MousePointerClick, TestTube2 } from 'lucide-react';
 
 const Switch = ({ checked, onChange, label }) => (
@@ -16,7 +17,8 @@ const Switch = ({ checked, onChange, label }) => (
 );
 
 const SettingsPage = () => {
-    const { user, theme, toggleTheme, navPreference, updateNavPreference, demoMode, setDemoMode } = useContext(AppContext);
+    const { user } = useContext(DataContext);
+    const { theme, toggleTheme, navPreference, updateNavPreference, demoMode, setDemoMode } = useContext(UIContext);
     const { logout } = useContext(AuthContext);
 
     return (

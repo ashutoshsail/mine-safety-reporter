@@ -1,5 +1,5 @@
 import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Award, AlertCircle, ChevronDown, Check, X as XIcon } from 'lucide-react';
@@ -86,7 +86,7 @@ const FilterPill = ({ label, options, selected, onSelect, onSelectAll, isAllSele
 
 // --- Main Page Component ---
 const ComparisonPage = () => {
-    const { incidents, currentDate } = useContext(AppContext);
+    const { incidents, currentDate } = useContext(DataContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
 
     const chartColors = useMemo(() => {

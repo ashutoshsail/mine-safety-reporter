@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import { AppContext } from './context/AppContext';
+import { DataContext } from './context/DataContext';
+import { UIContext } from './context/UIContext';
 import { AuthContext } from './context/AuthContext';
 import { ConfigContext } from './context/ConfigContext';
 import Sidebar from './components/Sidebar';
@@ -46,7 +47,8 @@ const BackButton = ({ onBack, disabled }) => {
 };
 
 function App() {
-  const { theme, user, navPreference } = useContext(AppContext);
+  const { theme, navPreference } = useContext(UIContext);
+  const { user } = useContext(DataContext);
   const { currentUser } = useContext(AuthContext);
   const { companyProfile } = useContext(ConfigContext);
   

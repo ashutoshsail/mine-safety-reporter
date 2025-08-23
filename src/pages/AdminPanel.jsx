@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { AppContext } from '../context/AppContext';
+import { UIContext } from '../context/UIContext';
+import { DataContext } from '../context/DataContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { collection, writeBatch, doc, addDoc, updateDoc, setDoc } from 'firebase/firestore';
@@ -96,7 +97,8 @@ const ConfigManager = React.memo(({ title, collectionName, items }) => {
 });
 
 const AdminPanel = ({ setRoute }) => {
-    const { setDemoMode, demoMode, loadMockIncidentForForm } = useContext(AppContext);
+    const { setDemoMode, demoMode } = useContext(UIContext);
+    const { loadMockIncidentForForm } = useContext(DataContext);
     const { minesConfig, sectionsConfig, incidentTypesConfig } = useContext(ConfigContext);
     const [message, setMessage] = useState('');
 

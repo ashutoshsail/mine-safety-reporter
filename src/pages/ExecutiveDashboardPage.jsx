@@ -1,6 +1,7 @@
 import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
 import { ConfigContext } from '../context/ConfigContext';
+import { UIContext } from '../context/UIContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ReferenceLine } from 'recharts';
 import { ChevronLeft, ChevronRight, X as XIcon, Smile, Info, TrendingUp, TrendingDown, ChevronDown, Check } from 'lucide-react';
 import { subMonths, startOfMonth, format, eachMonthOfInterval, subDays, subYears } from 'date-fns';
@@ -13,7 +14,7 @@ import MineSafetyRatingCard from '../components/MineSafetyRatingCard';
 
 // --- Configuration and Setup ---
 const fullConfig = resolveConfig(tailwindConfig);
-const chartColors = fullConfig.theme.chart; 
+const chartColors = fullConfig.theme.chart;
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -29,9 +30,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // --- Main Dashboard Component ---
 const ExecutiveDashboardPage = () => {
-    const { incidents, hoursWorked, currentDate } = useContext(AppContext);
+    const { incidents, hoursWorked: manDays, currentDate } = useContext(DataContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
-    
     const { width } = useWindowSize();
     const isSmallScreen = width < 768;
 
@@ -55,7 +55,6 @@ const ExecutiveDashboardPage = () => {
     const areAllTypesSelected = INCIDENT_TYPES && selectedTypes.length === INCIDENT_TYPES.length;
 
     const incidentTypeColorMap = useMemo(() => {
-		
         const colorKeys = Object.keys(chartColors);
         return (INCIDENT_TYPES || []).reduce((acc, type, index) => {
             acc[type] = chartColors[colorKeys[index % colorKeys.length]];
@@ -90,44 +89,63 @@ const ExecutiveDashboardPage = () => {
         const periodDurationMonths = { 'Last 30 Days': 1, 'Last 3 Months': 3, 'Last 6 Months': 6, 'Last 12 Months': 12 }[period] || 3;
         const prevPeriodTo = subDays(currentPeriodFrom, 1);
         const prevPeriodFrom = subMonths(prevPeriodTo, periodDurationMonths);
-        const getTotalHours = (start, end) => {
-            if (!hoursWorked || selectedMines.length === 0) return 0;
-            let total = 0;
-            const months = eachMonthOfInterval({ start, end });
-            for (const mine of selectedMines) {
-                if (hoursWorked[mine]) {
-                    for (const month of months) {
-                        const monthKey = format(month, 'yyyy-MM');
-                        total += hoursWorked[mine][monthKey] || 0;
-                    }
-                }
-            }
-            return total;
-        };
-        const currentHours = getTotalHours(currentPeriodFrom, baseDate);
-        const prevHours = getTotalHours(prevPeriodFrom, prevPeriodTo);
-        const allIncidentsInScope = (incidents || []).filter(inc => selectedMines.includes(inc.mine) && selectedTypes.includes(inc.type));
-        const currentPeriodIncidents = allIncidentsInScope.filter(inc => new Date(inc.date) >= currentPeriodFrom && new Date(inc.date) <= baseDate);
-        const prevPeriodIncidents = allIncidentsInScope.filter(inc => new Date(inc.date) >= prevPeriodFrom && new Date(inc.date) < currentPeriodFrom);
-        const calcLTI = (arr) => arr.filter(i => !['Near Miss', 'High Potential Incident'].includes(i.type)).length;
-        const calcNearMiss = (arr) => arr.filter(i => i.type === 'Near Miss').length;
-        const currentLTI = calcLTI(currentPeriodIncidents);
-        const prevLTI = calcLTI(prevPeriodIncidents);
-        const currentLtifr = currentHours > 0 ? (currentLTI * 1000000) / currentHours : 0;
-        const prevLtifr = prevHours > 0 ? (prevLTI * 1000000) / prevHours : 0;
-        const nearMisses = calcNearMiss(currentPeriodIncidents);
+        
+        const currentPeriodIncidents = (incidents || []).filter(inc => 
+            selectedMines.includes(inc.mine) && 
+            selectedTypes.includes(inc.type) &&
+            new Date(inc.date) >= currentPeriodFrom && 
+            new Date(inc.date) <= baseDate
+        );
+
+        const prevPeriodIncidents = (incidents || []).filter(inc => 
+            selectedMines.includes(inc.mine) &&
+            selectedTypes.includes(inc.type) &&
+            new Date(inc.date) >= prevPeriodFrom && 
+            new Date(inc.date) < currentPeriodFrom
+        );
+        
+        const getTotalManDays = (date) => {
+            // Get the month key for the selected date
+            const monthKey = format(date, 'yyyy-MM');
+            // Sum the manDays for all selected mines for that specific month
+            return selectedMines.reduce((sum, mine) => {
+                const mineData = manDays[mine] || {};
+                return sum + (mineData[monthKey] || 0); // Access the specific month's data
+            }, 0);
+        }
+
+        const currentManDays = selectedMines.reduce((sum, mine) => sum + (manDays[mine] || 0), 0);
+        const prevManDays = selectedMines.reduce((sum, mine) => {
+            const prevMonthDate = subMonths(currentDate, periodDurationMonths);
+            const prevMonthKey = format(prevMonthDate, 'yyyy-MM');
+            const mineData = manDays[mine] || {};
+            return sum + (mineData[prevMonthKey] || 0);
+        }, 0);
+        
+        const currentTotalDaysLost = currentPeriodIncidents.reduce((sum, inc) => sum + (inc.daysLost || 0), 0);
+        const prevTotalDaysLost = prevPeriodIncidents.reduce((sum, inc) => sum + (inc.daysLost || 0), 0);
+        
+        const currentLtiCount = currentPeriodIncidents.filter(i => i.daysLost > 0).length;
+        const prevLtiCount = prevPeriodIncidents.filter(i => i.daysLost > 0).length;
+
+        const currentLtifr = currentManDays > 0 ? (currentLtiCount * 1000000) / currentManDays : 0;
+        const prevLtifr = prevManDays > 0 ? (prevLtiCount * 1000000) / prevManDays : 0;
+        
+        const nearMisses = currentPeriodIncidents.filter(i => i.type === 'Near Miss').length;
         const reportableIncidents = currentPeriodIncidents.length - nearMisses;
         const nearMissRatio = reportableIncidents > 0 ? (nearMisses / reportableIncidents).toFixed(1) : 0;
+        
         const getChange = (current, previous) => {
             if (previous === 0) return current > 0 ? 100 : 0;
             return Math.round(((current - previous) / previous) * 100);
         };
+        
         return {
             totalIncidents: { value: currentPeriodIncidents.length, change: getChange(currentPeriodIncidents.length, prevPeriodIncidents.length) },
             ltifr: { value: currentLtifr.toFixed(2), change: getChange(currentLtifr, prevLtifr) },
             nearMissRatio: { value: `${nearMissRatio}:1`, change: 0 }
         };
-    }, [period, incidents, hoursWorked, selectedMines, selectedTypes, currentDate]);
+    }, [period, incidents, manDays, selectedMines, selectedTypes, currentDate]);
     
     const individualMineData = useMemo(() => {
         if (!selectedMines || selectedMines.length === 0 || !filteredIncidents) return { chartData: [], totalIncidents: 0 };

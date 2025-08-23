@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
-import { AppContext, ACCIDENT_TYPES } from '../context/AppContext';
+import { DataContext, ACCIDENT_TYPES } from '../context/DataContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { db } from '../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
@@ -41,7 +41,7 @@ const safetyTips = [
 ];
 
 const HomePage = () => {
-    const { incidents, submitNoAccident, user } = useContext(AppContext);
+    const { incidents, submitNoAccident, user } = useContext(DataContext);
     const { MINES, homePageNotice } = useContext(ConfigContext);
     
     const [selectedDate, setSelectedDate] = useState(new Date());

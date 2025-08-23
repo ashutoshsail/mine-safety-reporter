@@ -26,13 +26,13 @@ export const generateIncidentId = (mine, type) => {
 };
 
 const createIncident = (type, mine, section, date, isCurrentYear) => {
-    const lowerCaseType = type.toLowerCase();
-    const isInjuryIncident = !lowerCaseType.includes('miss') && !lowerCaseType.includes('accident');
-    const isLTI = type === 'Lost Time Injury (LTI)';
-    const isFatal = type === 'Fatality';
+    // UPDATED LOGIC: Any incident that is not a Near Miss or High Potential Incident is an LTI.
+    const isLTI = !['Near Miss', 'High Potential Incident'].includes(type);
+    const isFatal = type === 'Fatal Injury';
     const isSBI = type === 'Serious Bodily Injury';
 
-    const victimDetails = isInjuryIncident ? [{
+    const daysLost = isLTI ? Math.floor(Math.random() * 30) + 1 : 0;
+    const victimDetails = isLTI ? [{
         name: VICTIM_NAMES[Math.floor(Math.random() * VICTIM_NAMES.length)],
         category: Math.random() > 0.5 ? 'Regular' : 'Contractual',
         poNumber: Math.random() > 0.5 ? `PO-${Math.floor(Math.random() * 1000)}` : '',
@@ -63,7 +63,7 @@ const createIncident = (type, mine, section, date, isCurrentYear) => {
         comments: [],
         history: [{ user: "System", action: "Created Demo Report", timestamp: date.toISOString() }],
         isDemo: true,
-        daysLost: isLTI ? Math.floor(Math.random() * 30) : 0,
+        daysLost: daysLost,
     };
 };
 
@@ -84,11 +84,11 @@ export const generateMockData = (liveConfigs) => {
         
         let type;
         if (isCurrentYear) {
-            const nonFatalTypes = incidentTypes.filter(t => t !== 'Fatal');
+            const nonFatalTypes = incidentTypes.filter(t => t !== 'Fatal Injury');
             type = nonFatalTypes[Math.floor(Math.random() * nonFatalTypes.length)];
         } else {
             if (fatalityCountPrevYear >= 2) {
-                const nonFatalTypes = incidentTypes.filter(t => t !== 'Fatal');
+                const nonFatalTypes = incidentTypes.filter(t => t !== 'Fatal Injury');
                 type = nonFatalTypes[Math.floor(Math.random() * nonFatalTypes.length)];
             } else {
                 type = incidentTypes[Math.floor(Math.random() * incidentTypes.length)];
@@ -106,23 +106,20 @@ export const generateMockData = (liveConfigs) => {
         const newIncident = createIncident(type, mine, section, randomDate, isCurrentYear);
         incidents.push(newIncident);
 
-        if (newIncident.type === 'Fatal') fatalityCountPrevYear++;
+        if (newIncident.type === 'Fatal Injury') fatalityCountPrevYear++;
         if (newIncident.type === 'Serious Bodily Injury') seriousInjuryCount++;
     }
 
-    const hoursWorked = {};
+    const manDays = {};
     mines.forEach(mine => {
-        hoursWorked[mine] = {};
-        for (let i = 0; i < 24; i++) {
-            const monthDate = subMonths(startOfMonth(today), i);
-            const monthKey = format(monthDate, 'yyyy-MM');
-            const baseHours = 45000;
-            const variance = (Math.random() - 0.5) * 10000;
-            hoursWorked[mine][monthKey] = Math.round(baseHours + variance);
-        }
+        const currentMonthKey = format(today, 'yyyy-MM');
+        // Generate a random but reasonable man-days value
+        const baseManDays = 22 * 5000; // Assuming 22 working days per month, 5000 employees
+        const variance = (Math.random() - 0.5) * 50000;
+        manDays[mine] = Math.round(baseManDays + variance);
     });
 
-    return { incidents, hoursWorked };
+    return { incidents, manDays };
 };
 
 export const generateSingleMockIncident = (liveConfigs) => {

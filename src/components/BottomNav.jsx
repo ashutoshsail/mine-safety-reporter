@@ -1,5 +1,5 @@
 import React, { useContext, memo } from 'react';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
 import { Home, FileText, List, Settings } from 'lucide-react';
 
 const baseNavItems = [
@@ -9,7 +9,7 @@ const baseNavItems = [
 ];
 
 const BottomNav = memo(({ setRoute, currentRoute }) => {
-  const { user } = useContext(AppContext);
+  const { user } = useContext(DataContext);
 
   const navItems = [...baseNavItems];
   // The Settings link is now the final item

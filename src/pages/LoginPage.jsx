@@ -57,7 +57,7 @@ const LoginPage = ({ setRoute }) => {
             console.log("[DEBUG_CODE] LoginPage: Firestore profile updated/created successfully with UID.");
 
             // Step 3: Check for first-time login
-            if (password === 'password123') {
+            if (userData.isFirstLogin === true) {
                 setIsFirstLogin(true);
             } else {
                 setRoute('home');
@@ -81,6 +81,8 @@ const LoginPage = ({ setRoute }) => {
         }
         try {
             await updateUserPassword(newPassword);
+            const userRef = doc(db, "users", currentUser.uid);
+            await updateDoc(userRef, { isFirstLogin: false });
             setMessage("Password changed successfully. Redirecting...");
             setTimeout(() => {
                 setIsFirstLogin(false);

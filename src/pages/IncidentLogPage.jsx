@@ -1,12 +1,12 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { ArrowDownUp, Filter, X } from 'lucide-react';
 import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format } from 'date-fns';
 import IncidentCard from '../components/IncidentCard';
 
 const IncidentLogPage = () => {
-    const { incidents } = useContext(AppContext);
+    const { incidents } = useContext(DataContext);
     const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     
     const [sortConfig, setSortConfig] = useState({ key: 'status', direction: 'desc' });
@@ -68,7 +68,7 @@ const IncidentLogPage = () => {
         });
         return filtered;
     }, [incidents, filters, sortConfig]);
-    
+
     const activeFilterCount = useMemo(() => {
         let count = 0;
         if(MINES && INCIDENT_TYPES) {
@@ -76,19 +76,19 @@ const IncidentLogPage = () => {
             if (filters.mine.length > 0 && filters.mine.length < MINES.length) count++;
             if (filters.type.length > 0 && filters.type.length < INCIDENT_TYPES.length) count++;
             if (filters.period !== 'This Month' && filters.period !== 'All Time' && filters.period !== '') count++;
-             if (filters.period === 'All Time') count = 0; 
+             if (filters.period === 'All Time') count = 0;
         }
         return count;
     }, [filters, MINES, INCIDENT_TYPES]);
-    
+
     const sortOptions = [
         {key: 'status', label: 'Status'},
-        {key: 'date', label: 'Date'}, 
+        {key: 'date', label: 'Date'},
         {key: 'daysLost', label: 'Days Lost'},
-        {key: 'type', label: 'Incident Type'}, 
+        {key: 'type', label: 'Incident Type'},
         {key: 'mine', label: 'Mine'},
     ];
-    
+
     return (
         <div className="space-y-4">
             <div className="sticky top-4 z-20">
@@ -122,8 +122,8 @@ const IncidentLogPage = () => {
                 )}
             </div>
             
-            {isFilterOpen && 
-                <FilterPanel 
+            {isFilterOpen &&
+                <FilterPanel
                     onClose={() => setIsFilterOpen(false)}
                     filters={filters}
                     setFilters={setFilters}
@@ -180,7 +180,7 @@ const FilterPanel = ({ onClose, filters, setFilters }) => {
         setTempFilters(initial);
     };
     const periodFilters = ['Today', 'Yesterday', 'Last 7 Days', 'This Month', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'This Year', 'Last Year'];
-    
+
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-start p-4" onClick={onClose}>
             <div className="bg-light-card dark:bg-dark-card rounded-lg shadow-xl w-full max-w-md my-8 max-h-[75vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -224,13 +224,18 @@ const FilterPanel = ({ onClose, filters, setFilters }) => {
 
 const MultiSelectFilter = ({ title, options, selected, onSelect, onSelectAll, columns = "1" }) => {
     const areAllSelected = options && options.length > 0 && selected.length === options.length;
+    const columnClasses = {
+      "1": "grid-cols-1",
+      "2": "grid-cols-2",
+      "2 sm:grid-cols-2": "grid-cols-2 sm:grid-cols-2"
+    };
     return (
         <div className="space-y-1">
             <div className="flex justify-between items-center">
                 <h3 className="text-xs text-slate-500 dark:text-slate-400">{title}</h3>
                 {onSelectAll && <button onClick={onSelectAll} className="text-xs text-light-primary">{areAllSelected ? 'Clear All' : 'Select All'}</button>}
             </div>
-            <div className={`max-h-24 overflow-y-auto space-y-1 p-1 -m-1 grid grid-cols-${columns}`}>
+            <div className={`max-h-24 overflow-y-auto space-y-1 p-1 -m-1 grid ${columnClasses[columns]}`}>
                 {options && options.map(option => (
                     <label key={option} className={`flex items-center gap-2 cursor-pointer p-1 rounded-md ${selected.includes(option) ? 'bg-light-primary/10' : ''}`}>
                         <input type="checkbox" checked={selected.includes(option)} onChange={() => onSelect(option)} className="h-4 w-4 rounded text-light-primary focus:ring-light-primary" />

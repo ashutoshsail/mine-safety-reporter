@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { ArrowDownUp, Filter as FilterIcon } from 'lucide-react';
-import FloatingFilterBar from './FloatingFilterBar'; // We will reuse this component
+import FloatingFilterBar from './FloatingFilterBar';
+import { ConfigContext } from '../context/ConfigContext';
 
 const LogPageControls = ({ filters, setFilters, sortConfig, setSortConfig, onFilterOpen }) => {
-    const { MINES, INCIDENT_TYPES } = useContext(ConfigContext); // Assuming ConfigContext is available
+    const { MINES, INCIDENT_TYPES } = useContext(ConfigContext);
     const activeFilterCount = Object.values(filters).filter(f => Array.isArray(f) ? f.length > 0 : f.start).length;
     const sortOptions = [
-        {key: 'date', label: 'Date'}, 
+        {key: 'date', label: 'Date'},
         {key: 'daysLost', label: 'Days Lost'},
-        {key: 'type', label: 'Incident Type'}, 
+        {key: 'type', label: 'Incident Type'},
         {key: 'mine', label: 'Mine'},
     ];
 
@@ -37,7 +38,7 @@ const LogPageControls = ({ filters, setFilters, sortConfig, setSortConfig, onFil
 
 const PageControlBar = ({ currentRoute, pageState, pageHandlers }) => {
     if (!['log', 'analytics', 'comparison'].includes(currentRoute)) {
-        return null; // Don't render anything on other pages
+        return null;
     }
 
     let content = null;
@@ -45,7 +46,7 @@ const PageControlBar = ({ currentRoute, pageState, pageHandlers }) => {
     if (currentRoute === 'log') {
         content = <LogPageControls {...pageState} {...pageHandlers} />;
     }
-    
+
     if (currentRoute === 'analytics' || currentRoute === 'comparison') {
         content = <FloatingFilterBar filters={pageState.filters} />;
     }

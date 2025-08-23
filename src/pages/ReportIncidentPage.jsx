@@ -1,5 +1,5 @@
 import React, { useState, useContext, useRef, useMemo, useEffect, useCallback } from 'react';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { ChevronRight, FileText, Download, CheckCircle, Upload, X, UserPlus, Trash2, Check, ExternalLink } from 'lucide-react';
 import IncidentReportPDF from '../components/IncidentReportPDF';
@@ -16,7 +16,7 @@ const FormField = ({ label, children }) => (
 );
 
 const ReportIncidentPage = ({ setRoute }) => {
-    const { user, addIncident, mockIncidentForForm, clearMockIncidentForForm } = useContext(AppContext);
+    const { user, addIncident, mockIncidentForForm, clearMockIncidentForForm } = useContext(DataContext);
     const { minesConfig, sectionsConfig, INCIDENT_TYPES } = useContext(ConfigContext);
     
     const [step, setStep] = useState(1);

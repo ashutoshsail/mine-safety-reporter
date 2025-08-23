@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import { DataContext } from '../context/DataContext';
+import { UIContext } from '../context/UIContext';
 import { ConfigContext } from '../context/ConfigContext';
 import { Home, FileText, List, BarChart2, GitCompareArrows, Settings, ShieldCheck, LogOut, X } from 'lucide-react';
 import { auth } from '../firebaseConfig';
@@ -13,8 +14,9 @@ const navItems = [
   { id: 'comparison', icon: GitCompareArrows, label: 'Comparison' },
 ];
 
-const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen, navPreference }) => {
-  const { user } = useContext(AppContext);
+const Sidebar = ({ currentRoute, setRoute, isOpen, setIsOpen }) => {
+  const { user } = useContext(DataContext);
+  const { navPreference } = useContext(UIContext);
   const { companyProfile } = useContext(ConfigContext);
 
   const handleLogout = () => {

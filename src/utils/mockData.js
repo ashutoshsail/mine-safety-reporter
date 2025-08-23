@@ -16,7 +16,7 @@ const DESCRIPTIONS = [
     "A flash fire occurred in the workshop due to welding sparks near a fuel container."
 ];
 
-const INCIDENT_TYPES_FOR_DEMO = ['First Aid', 'Reportable', 'Lost Time Injury (LTI)', 'Fatality', 'Near Miss', 'High Potential Incident'];
+const INCIDENT_TYPES_FOR_DEMO = ['Near Miss', 'High Potential Incident', 'Non-Serious LTI (Non-Reportable)', 'Non-Serious LTI (Reportable, >48h absence)', 'Serious Bodily Injury', 'Fatal Injury'];
 
 let incidentCounter = 1000;
 export const generateIncidentId = (mine, type) => {

@@ -112,7 +112,7 @@ const MineSafetyRatingCard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [manDays, setManDays] = useState({});
     const [editingManDays, setEditingManDays] = useState(null);
-    const [visibleDate, setVisibleDate] = useState(subMonths(currentDate, 1));
+    const [visibleDate, setVisibleDate] = useState(subMonths(new Date(), 1));
 
     useEffect(() => {
         // Update local manDays state when hoursWorked from context changes
@@ -235,7 +235,7 @@ const MineSafetyRatingCard = () => {
         setVisibleDate(addMonths(visibleDate, 1));
     };
 
-    const isLatestMonth = isEqual(startOfMonth(visibleDate), startOfMonth(subMonths(currentDate, 1)));
+    const isLatestMonth = isEqual(startOfMonth(visibleDate), startOfMonth(subMonths(new Date(), 1)));
 
     if (appLoading) {
         return (
@@ -263,7 +263,7 @@ const MineSafetyRatingCard = () => {
                  <button onClick={handlePreviousMonth} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
                     <ChevronLeft size={24} />
                  </button>
-                 <h2 className="text-xl font-semibold mb-3">Mine Safety Performance Scoreboard for {format(visibleDate, 'MMMM yyyy')}</h2>
+                 <h2 className="text-base font-semibold">Mine Safety Performance Scoreboard for {format(visibleDate, 'MMMM yyyy')}</h2>
                  <button onClick={handleNextMonth} disabled={isLatestMonth} className={`p-2 rounded-full ${isLatestMonth ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed' : 'hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
                      <ChevronRight size={24} />
                  </button>

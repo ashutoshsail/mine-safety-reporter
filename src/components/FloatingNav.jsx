@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext, memo } from 'react';
-import { AppContext } from '../context/AppContext';
+import { AuthContext } from '../context/AuthContext';  // ✅ Import AuthContext
 import { Home, FileText, List, X, Menu } from 'lucide-react';
 
 const baseNavItems = [
@@ -10,7 +10,7 @@ const baseNavItems = [
 
 const FloatingNav = memo(({ setRoute, currentRoute }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useContext(AppContext);
+  const { user } = useContext(AuthContext); // ✅ Use AuthContext here
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -49,7 +49,6 @@ const FloatingNav = memo(({ setRoute, currentRoute }) => {
           </div>
           <button 
             onClick={() => setIsOpen(!isOpen)} 
-            // MODIFIED: Changed background color to the theme's accent color
             className="absolute bottom-0 right-0 w-auto h-16 bg-light-accent dark:bg-dark-accent text-white rounded-full flex items-center justify-center shadow-xl transform transition-transform duration-300 hover:scale-105 px-4"
           >
             <div className="flex items-center justify-center gap-2">

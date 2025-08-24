@@ -43,12 +43,13 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const value = {
-        currentUser,
-        login,
-        logout,
-        resetPassword,
-        updateUserPassword
-    };
+  user: currentUser,  // ✅ lowercase 'user'
+  currentUser,
+  login,
+  logout,
+  resetPassword,
+  updateUserPassword
+};
 
     return (
         <AuthContext.Provider value={value}>
